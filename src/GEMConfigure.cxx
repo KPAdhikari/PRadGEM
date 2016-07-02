@@ -72,7 +72,16 @@ void GEMConfigure::LoadConfigure()
       else if(s=="INPUTFILE")
       {
 	tokens = strtok(NULL, " :,");
-	fileList[kk_file++] = tokens;
+	fileHeader = tokens;
+        tokens = strtok(NULL, " :,");
+	evioStart = atoi(tokens);
+	tokens = strtok(NULL, " :,");
+	evioEnd = atoi(tokens);
+
+	for(int i=evioStart; i<= evioEnd;i++)
+	{
+	  fileList[kk_file++] = fileHeader+"."+to_string(i);
+	}
       }
       else if(s == "TDCChannel")
       {

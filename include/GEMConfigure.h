@@ -1,3 +1,10 @@
+//======================================//
+//                                      //
+// Xinzhan Bai                          //
+// 03/20/2016                           //
+// xb4zp@virginia.edu                   //
+//======================================//
+
 #ifndef __GEMCONFIGURE_H__
 #define __GEMCONFIGURE_H__
 
@@ -28,7 +35,10 @@ public:
   // make following variables public
   // input files to be analyzed...
   string fileList[1000];
+  string fileHeader;
   int nFile;
+  int evioStart;
+  int evioEnd;
   // physics cut
   int UseScinTDCCut;
   int UseHyCalTimingCut;
