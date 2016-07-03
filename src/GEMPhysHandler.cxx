@@ -14,7 +14,7 @@ using namespace evio;
 
 // GEM Efficiency Macros
 #define TDC_CHECK_EFFICIENCY
-#undef  TDC_CHECK_EFFICIENCY
+//#undef  TDC_CHECK_EFFICIENCY
 
 #define ZEROSUPPRESSION
 #undef ZEROSUPPRESSION
@@ -186,22 +186,19 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	int HyCalTimingCut = 1;
 
 #ifdef TDC_CHECK_EFFICIENCY
+        // photon total energy deposited in HyCal
+	double photon_energy = 0;
+	photon_energy = pHandler->GetEnergy();
+
 	for(iter=fecEventList->begin(); iter!=fecEventList->end(); ++iter)
 	  {
-	    //cout<<"tag: "<<(*iter)->tag<<" num:  "<<(int)((*iter)->num)<<endl;
             if( (*iter)->tag == 57633 ) // ti bank
               {
-                //cout<<"Band ID:" <<(*iter)->tag<<(*iter)->num<<endl;
                 vector<uint32_t> *ti_vec = (*iter)->getVector<uint32_t>();
                 int ti_size = ti_vec->size();
-                //cout<<"ti_size:   "<<ti_size<<endl;
-		//cout<<"------------------------------"<<endl;
 		if(config.UseHyCalTimingCut == 1)
 		  {
 		    HyCalTimingCut = 0;
-		    //cout<<"hdslfij"<<ntrigger<<endl;
-		    //#ifdef HyCalTimingCut	          
-		    //------------------------------------------------
 		    //HyCal timing cut
 		    //G22  time slot 97  ; G1:112; G2:100; G6:113
 		    //G21  time slot 115 ; G10:67; W12:92
@@ -220,10 +217,9 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 		     * W32 101  :   W28  104:   W4  105:  W10 106
 		     * W16 107  :   W22  108:   G3  109:  G23 110
 		     * G16 114  :  G21   115:   W31 116:  W19 117
-		     * W23 120  :  W34  121:   W17 122: W35 123
-		     * W29 124  :  W5  125: Scin S1 126 : Scin S2 127
+		     * W23 120  :   W34  121:   W17 122:  W35 123
+		     * W29 124  :    W5  125: Scin S1 126 : Scin S2 127
 		     * ************************************************/
-		    HyCalTimingCut = 0;
 		    for(int i=0;i<ti_size;i++)
 		      {
 			if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
@@ -232,23 +228,21 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 			//if( (tdc_ch == 67)||(tdc_ch == 92) )
 			if( (tdc_ch == 123))
 			  {
-			    double tdc_value = (ti_vec->at(i)) & 0x7ffff; if(ntrigger<100) cout<<tdc_value<<endl;
+			    double tdc_value = (ti_vec->at(i)) & 0x7ffff; 
+			    if(ntrigger<100) cout<<tdc_value<<endl;
 			    if( (tdc_value>config.Hycal_Timing_Cut_Start) && (tdc_value<config.Hycal_Timing_Cut_End) ) 
 			      {
 				HyCalTimingCut = 1;  
-				//cout<<"tdc_value"<<tdc_value<<endl; 
 				timing_test = tdc_value;
 				break;
 			      }
 			  }
 		      }
-		    //#endif          
 		  }
-		//HyCalTimingCut = 0;
+
 		// Scintillator Timing Cut ...
 		// time slot 126
 		// time slot 127
-		//cout<<"TDC cut: "<<config.UseScinTDCCut<<endl;
                 if(config.UseScinTDCCut == 1)
 		  {
 		    convert = 0;
@@ -259,11 +253,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 			if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
 			int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
 		   
-			//tdc_ch = 0;
 			//printf("0x%x \n", ti_vec->at(i));
-			//if( (tdc_ch == 126) || (tdc_ch == 127) ) { convert = 1; break;}
-			//---------------------------------------
-			//Scintillator Timing Cut
 			if(config.TDC_Channel == "126")
 			  {
 			    //cout<<" 126 cut..."<<endl;
@@ -283,7 +273,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 				  }
 			      }
 			  }
-			//----------------------------------------
+
 			if(config.TDC_Channel == "127")
 			  {
 			    //cout<<" 127 cut ..."<<endl;
@@ -300,13 +290,13 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 				  }
 			      }
 			  }
-			//-----------------------------------------
+
 			if(config.TDC_Channel == "126and127")
 			  {
 			    //cout<< " 126 and 127 cut ..."<<endl;
 			    if( (tdc_ch == 126) ) TF126 = 1;
 			    if( (tdc_ch == 127) ) TF127 = 1;
-			    if( (TF126 == 1) || (TF127 == 1) ) 
+			    if( (TF126 == 1) && (TF127 == 1) ) 
 			      { 
 				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
 				//if( (tdc_value>7600) && (tdc_value<7800) )
@@ -322,7 +312,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 				  }
 			      }
 			  }
-			//-----------------------------------------
+
 			if(config.TDC_Channel == "126or127")
 			  {
 			    //cout<< " 126 or 127 cut ..."<<endl;
@@ -342,25 +332,25 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 				  }
 			      }
 			  }
-			//cout<<tdc_ch<<endl;
-			// 126 & 127 scintilator channels
 		      }
-		    //cout<<"------------------------------"<<endl<<endl;
 		  }
               }
-	    //break; // end TI bank
 	  }
+
         if(ntrigger<10)
-	  cout<<"HyCalTimingCut : "<<HyCalTimingCut<<"  convert: "<<convert<<" energy: "<<energy<<endl;
-	if( (HyCalTimingCut == 1) && (convert == 1) && (energy >= config.Hycal_Energy) ) 
+	  cout<<"HyCalTimingCut : "<<HyCalTimingCut
+	      <<"  convert: "<<convert
+	      <<"  photon energy: "<<photon_energy
+	      <<endl;
+
+	if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config.Hycal_Energy) ) 
 	  { 
 	    //cout<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
-	    if(ntrigger<10) cout<<"GEMPhys::ProcessEvents: Energy HyCal: "<<energy<<endl;
+	    if(ntrigger<10) cout<<"GEMPhys::ProcessEvents: Energy HyCal: "<<photon_energy<<endl;
 	    nElectron+=1;
 	    convert=0; 
-	    //cout<<"GEMPhys::ProcessEvents: Conveted..."<<endl;
 	  }
-	else {continue;cout<<"cut out..."<<endl;}
+	else continue;
 #endif
 
 	for(iter=fecEventList->begin(); iter!=fecEventList->end(); ++iter)
