@@ -36,7 +36,8 @@ GEMPhysHandler::GEMPhysHandler()
   nElectron_127=0;
 
   nScinEvents = 0;
-  nEntry = 0;  // to get how many events in total, this to compute photon conversion probability
+  nHyCalEvents = 0;
+  nTotalEvents = 0;  // to get how many events in total, this to compute photon conversion probability
   neff = 0;
 
   mAPVRawHistos.clear();
@@ -112,14 +113,15 @@ void GEMPhysHandler::ProcessAllFiles()
   cout<<"TDC Cut: "<<config.TDC_Channel<<", Start TIME:  "<<config.TDC_Start<<", END TIME:  "<<config.TDC_End<<", HyCal Energy Cut:  "<<config.Hycal_Energy<<endl;
 
   // to compute photon conversion rate
-  nEntry = 0;
+  nTotalEvents = 0;
+  neff = 0;
+  nElectron = 0;
 
 
   if(config.fileList[0].find("evio.0")!= string::npos)
-  {
-    pHandler->InitializeByData(config.fileList[0].c_str());
-  };
-
+    {
+      pHandler->InitializeByData(config.fileList[0].c_str());
+    };
 
   for(int i=1;i<nFile;i++)
     {
@@ -136,7 +138,7 @@ void GEMPhysHandler::ProcessAllFiles()
   double eff_real = (double)neff/nElectron;
   cout<<"GEM Hit: "<<neff<<endl;
   cout<<"TDC:  "<<nElectron<<endl;
-  cout<<"Total Number of Events in "<<nFile<<" Files: "<<nEntry<<endl;
+  cout<<"Total Number of Events in "<<nFile<<" Files: "<<nTotalEvents<<endl;
   cout<<"------------------------------------"<<endl;
   cout<<"Overall Detector Efficiency: "<<eff_real<<endl;
   cout<<"------------------------------------"<<endl;
@@ -157,20 +159,20 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     while(chan.read())
       {
         ntrigger +=1.0;
-	nEntry += 1.0;
+	nTotalEvents += 1.0;
         pHandler->Decode(chan.getBuffer());
 	pHyCalHit =& reconstruct->CoarseHyCalReconstruct(pHandler->GetEventCount() - 1); 
         //pHyCalHit = &HyCalHit;
         //cout<<pHyCalHit->size()<<endl;
         hHyCalClusterMul->Fill(pHyCalHit->size());
        	for(int i=0;i<pHyCalHit->size(); i++)
-	{
-	  hhHyCalClusterMap->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
+	  {
+	    hhHyCalClusterMap->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
 
-	  hHyCalEnergy->Fill(pHyCalHit->at(i).E);
-	  if(pHyCalHit->size() == 1) hHyCalEnergyEp->Fill(pHyCalHit->at(i).E);
-	  if(pHyCalHit->size() == 2) {hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);}
-	}
+	    hHyCalEnergy->Fill(pHyCalHit->at(i).E);
+	    if(pHyCalHit->size() == 1) hHyCalEnergyEp->Fill(pHyCalHit->at(i).E);
+	    if(pHyCalHit->size() == 2) {hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);}
+	  }
        
 	vSRSSingleEventData.clear();
         vSRSZeroEventData.clear();
@@ -343,12 +345,16 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	      <<"  photon energy: "<<photon_energy
 	      <<endl;
 
+	if( HyCalTimingCut == 1)
+	  nHyCalEvents ++ ;
+	if( convert == 1)
+	  nScinEvents ++ ;
+
 	if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config.Hycal_Energy) ) 
 	  { 
 	    //cout<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
 	    if(ntrigger<10) cout<<"GEMPhys::ProcessEvents: Energy HyCal: "<<photon_energy<<endl;
 	    nElectron+=1;
-	    convert=0; 
 	  }
 	else continue;
 #endif
@@ -361,7 +367,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 		  ((int)((*iter)->num)==7) || ((int)((*iter)->num)==8) || 
 		  ((int)((*iter)->num)==9) || ((int)((*iter)->num)==10)|| 
 		  ((int)((*iter)->num)==11)|| ((int)((*iter)->num)==12) ) 
-	      )
+		)
 	      {
 		vector<uint32_t> *vec = (*iter)->getVector<uint32_t>();
 		if(vec!=NULL  && vec->size()>0)
@@ -456,28 +462,28 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 
           // compute offsets between two gem chambers
 	  if( (gem1.size()==1) && (gem2.size()==1) )
-	  {
-	    if( (gem1[0].x > OverlapStart) && (gem2[0].x > OverlapStart) )
 	    {
-	      {
-	        //z offset correction
-		double z_gem1 = 5300; //mm
-		double z_gem2 = 5260; //mm
-		double x1prime = (gem1[0].x-O_Transfer)*z_gem2/z_gem1;
-		double y1prime = gem1[0].y*z_gem2/z_gem1;
-		hYOffsetGEM->Fill( ( y1prime ) - ( -gem2[0].y) );
-		hXOffsetGEM->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
+	      if( (gem1[0].x > OverlapStart) && (gem2[0].x > OverlapStart) )
+		{
+		  {
+		    //z offset correction
+		    double z_gem1 = 5300; //mm
+		    double z_gem2 = 5260; //mm
+		    double x1prime = (gem1[0].x-O_Transfer)*z_gem2/z_gem1;
+		    double y1prime = gem1[0].y*z_gem2/z_gem1;
+		    hYOffsetGEM->Fill( ( y1prime ) - ( -gem2[0].y) );
+		    hXOffsetGEM->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
 
-		//after correction
-		double xoffset = -0.3618;// x1 - x2
-		double yoffset = 0.1792; // y1 - y2
-		x1prime = (gem1[0].x - xoffset -O_Transfer)*z_gem2/z_gem1;
-		y1prime = (gem1[0].y - yoffset )*z_gem2/z_gem1;
-		hYOffsetGEMAfterCorrection->Fill( ( y1prime ) - ( -gem2[0].y) );
-		hXOffsetGEMAfterCorrection->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
-	      }
+		    //after correction
+		    double xoffset = -0.3618;// x1 - x2
+		    double yoffset = 0.1792; // y1 - y2
+		    x1prime = (gem1[0].x - xoffset -O_Transfer)*z_gem2/z_gem1;
+		    y1prime = (gem1[0].y - yoffset )*z_gem2/z_gem1;
+		    hYOffsetGEMAfterCorrection->Fill( ( y1prime ) - ( -gem2[0].y) );
+		    hXOffsetGEMAfterCorrection->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
+		  }
+		}
 	    }
-	  }
 
 	  //nb of clusters per event
 	  CharactorizeGEM(&online_hit);
@@ -492,13 +498,13 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 		  hhGEMClusterMap->Fill(hgem1[i].x, hgem1[i].y);
 		}
 	      if( hgem1.size() == 1)
-	      {
-	        hhGEMClusterMapSingleCluster->Fill(hgem1[0].x, hgem1[0].y);
-	      }
+		{
+		  hhGEMClusterMapSingleCluster->Fill(hgem1[0].x, hgem1[0].y);
+		}
 	      if( hgem1.size() <= 2)
-	      {
-	        hhGEMClusterMapMaxTwoCluster->Fill(hgem1[0].x, hgem1[0].y);
-	      }
+		{
+		  hhGEMClusterMapMaxTwoCluster->Fill(hgem1[0].x, hgem1[0].y);
+		}
 	    }
 	  if(hgem2.size() > 0)
 	    {
@@ -507,19 +513,19 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 		  hhGEMClusterMap->Fill(hgem2[i].x,hgem2[i].y);
 		}
 	      if( hgem2.size() == 1)
-	      {
-	        hhGEMClusterMapSingleCluster->Fill(hgem2[0].x, hgem2[0].y);
-	      }
+		{
+		  hhGEMClusterMapSingleCluster->Fill(hgem2[0].x, hgem2[0].y);
+		}
 	      if( hgem2.size() <= 2)
-	      {
-	        hhGEMClusterMapMaxTwoCluster->Fill(hgem2[0].x, hgem2[0].y);
-	      }
+		{
+		  hhGEMClusterMapMaxTwoCluster->Fill(hgem2[0].x, hgem2[0].y);
+		}
 	    }
 
 	  // Calculate Detector Efficiency
 	  if( (gem1.size()>0) || (gem2.size()>0) )
 	    {
-		neff +=1.0;
+	      neff +=1.0;
 	    }
 	}
       }
@@ -527,12 +533,12 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     chan.close();
 
     /*
-    TFile *f = new TFile("aaaa.root", "RECREATE");
-    pHandler->GetTDCGroup("S1")->GetHist()->Write();
-    pHandler->GetTDCGroup("S2")->GetHist()->Write();
-    pHandler->GetTDCGroup("G21")->GetHist()->Write();
-    pHandler->GetTDCGroup("G22")->GetHist()->Write();
-    f->Close();
+      TFile *f = new TFile("aaaa.root", "RECREATE");
+      pHandler->GetTDCGroup("S1")->GetHist()->Write();
+      pHandler->GetTDCGroup("S2")->GetHist()->Write();
+      pHandler->GetTDCGroup("G21")->GetHist()->Write();
+      pHandler->GetTDCGroup("G22")->GetHist()->Write();
+      f->Close();
     */
 
   } catch (evioException e) {
@@ -654,18 +660,18 @@ template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
       //if( (gem1[0]>OverlapStart) && (gem2[0].x>OverlapStart)  && ((TMath::Abs(gem2[0].y+gem1[0].y))<2.0 /* suppose the shift between two chambers is smaller than 2mm  */) )
       /*
 	{
-	  theta = TMath::Sqrt( (gem2[0].x)*(gem2[0].x) + gem2[0].y*gem2[0].y) / z_gem2;
-	  theta = TMath::ATan(theta);
-	  hThetaDistributionEp->Fill(theta*180.0/PI);
+	theta = TMath::Sqrt( (gem2[0].x)*(gem2[0].x) + gem2[0].y*gem2[0].y) / z_gem2;
+	theta = TMath::ATan(theta);
+	hThetaDistributionEp->Fill(theta*180.0/PI);
 
-	  //q suqare
-	  top = 4.0*1.1*1.1*TMath::Sin(theta/2)*TMath::Sin(theta/2);
-	  bottom = 1+ (2*1.1/0.938)*TMath::Sin(theta/2)*TMath::Sin(theta/2);
-	  q_square = top/bottom;
-	  hQSquareEp->Fill(q_square);
+	//q suqare
+	top = 4.0*1.1*1.1*TMath::Sin(theta/2)*TMath::Sin(theta/2);
+	bottom = 1+ (2*1.1/0.938)*TMath::Sin(theta/2)*TMath::Sin(theta/2);
+	q_square = top/bottom;
+	hQSquareEp->Fill(q_square);
 
 	}
-     */
+      */
     }
 
 }
@@ -704,8 +710,8 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
   double yoffset_beam = 0.366;
 
 
-   // Moller events selection
-   //     require them in different quadrants, very rough
+  // Moller events selection
+  //     require them in different quadrants, very rough
   if( (gem1.size() == 2)&&(gem2.size() == 0)) 
     { 
       if(  ( (gem1[0].x)*(gem1[1].x) < 0 ) && ( gem1[0].y*gem1[1].y < 0 ) ) 
@@ -1111,8 +1117,8 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
   double yoffset_beam = 0.366;
 
 
-   // Moller events selection
-   //     require them in different quadrants, very rough
+  // Moller events selection
+  //     require them in different quadrants, very rough
  
   if( (gem1.size() == 2)&&(gem2.size() == 0)) 
     { 
@@ -1588,15 +1594,15 @@ void GEMPhysHandler::SavePhysResults()
 int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit)
 {
   if(gem.size() == 0)
-  {
-    pHHit->clear();
-    return 0;
-  }
+    {
+      pHHit->clear();
+      return 0;
+    }
   if(pHHit->size() == 0) 
-  {
-    gem.clear();
-    return 0;
-  }
+    {
+      gem.clear();
+      return 0;
+    }
 
   double z_gem1 = 5300; //mm
   double z_gem2 = 5260; //mm
@@ -1605,52 +1611,52 @@ int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, ve
   double res = 10; // a larger range, 60mm
 
   if( ngem==0 ) 
-     z_gem = z_gem1; 
+    z_gem = z_gem1; 
   else if(ngem == 1) 
-     z_gem = z_gem2;
+    z_gem = z_gem2;
   else
-  {
-     cout<<"GEMIndex: 0 or 1..."<<endl;
-     return 0;
-  }
+    {
+      cout<<"GEMIndex: 0 or 1..."<<endl;
+      return 0;
+    }
   
   vector<GEMClusterStruct> res_gem;
 
   int n = gem.size();
   int nh = pHHit->size();
   for(int i=0;i<n;i++)
-  {
-    double r_gem = TMath::Sqrt( gem[i].x*gem[i].x + gem[i].y*gem[i].y );
-    double r_hycal = r_gem/z_gem * z_hycal;
-    double x_hycal = r_hycal*gem[i].x/r_gem;
-    double y_hycal = r_hycal*gem[i].y/r_gem;
-
-    for(int j=0;j<nh;j++)
     {
-      if( TMath::Abs((pHHit->at(j).x)-x_hycal) < res)
-      {
-        if( TMath::Abs((pHHit->at(j).y)-y_hycal) < res)
+      double r_gem = TMath::Sqrt( gem[i].x*gem[i].x + gem[i].y*gem[i].y );
+      double r_hycal = r_gem/z_gem * z_hycal;
+      double x_hycal = r_hycal*gem[i].x/r_gem;
+      double y_hycal = r_hycal*gem[i].y/r_gem;
+
+      for(int j=0;j<nh;j++)
 	{
-	  gem[i].energy = pHHit->at(j).E;
-          res_gem.push_back(gem[i]);
+	  if( TMath::Abs((pHHit->at(j).x)-x_hycal) < res)
+	    {
+	      if( TMath::Abs((pHHit->at(j).y)-y_hycal) < res)
+		{
+		  gem[i].energy = pHHit->at(j).E;
+		  res_gem.push_back(gem[i]);
+		}
+	    }
 	}
-      }
     }
-  }
 
   if(res_gem.size() > 0)
-  {
-    gem.clear();
-    gem = res_gem;
+    {
+      gem.clear();
+      gem = res_gem;
     
-    return res_gem.size();
-  }
+      return res_gem.size();
+    }
   else
-  {
-    gem.clear();
-    return 0;
+    {
+      gem.clear();
+      return 0;
 
-  }
+    }
 }
 
 int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit)
@@ -1660,18 +1666,18 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
   int nhits_hycal = pHHit->size();
 
   if( (gem1.size() == 0) && (gem2.size() == 0))
-  {
+    {
  
-    pHHit->clear();
-    return 0;
-  }
+      pHHit->clear();
+      return 0;
+    }
   if(pHHit->size() == 0) 
-  {
-    gem1.clear();
-    gem2.clear();
+    {
+      gem1.clear();
+      gem2.clear();
  
-    return 0;
-  }
+      return 0;
+    }
 
   double z_gem1 = 5300; //mm
   double z_gem2 = 5260; //mm
@@ -1684,138 +1690,138 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
 
   int nh = pHHit->size();
   for(int i=0;i<nh;i++)
-  {
-    int dx = res;
-    int dy = res;
-
-    int match_gem1 = 0;
-    int match_gem2 = 0;
-    float m_index = 0;
-    float m_e = 0;
-
-    // search GEM1
-    int n = gem1.size();
-    if(n > 0)
     {
-      double x_hycal = (pHHit->at(i).x) *z_gem1/z_hycal;
-      double y_hycal = (pHHit->at(i).y) *z_gem1/z_hycal;
-      for(int j=0;j<n;j++)
-      {
-        if( (TMath::Abs(gem1[j].x-x_hycal) < dx) && ( TMath::Abs(gem1[j].y-y_hycal) < dy) )
-        {
-	    dx = TMath::Abs(gem1[j].x-x_hycal);
-	    dy = TMath::Abs(gem1[j].y-y_hycal); 
-	    m_index = j;
-	    m_e = pHHit->at(i).E;
-	    match_gem1 = 1;
-	    match_gem2 = 0;
-            hXDiffMatch->Fill(gem1[j].x - x_hycal);
-	    hYDiffMatch->Fill(gem1[j].y - y_hycal);
-            hhXDiffMatchVsEnergy->Fill(m_e, gem1[j].x - x_hycal);
-	    hhYDiffMatchVsEnergy->Fill(m_e, gem1[j].y - y_hycal);
-        }
-      }
-    }
+      int dx = res;
+      int dy = res;
 
-    //continue search GEM2
-    n = gem2.size();
-    if(n>0)
-    {
-      double x_hycal = (pHHit->at(i).x) *z_gem2/z_hycal;
-      double y_hycal = (pHHit->at(i).y) *z_gem2/z_hycal;
-      for(int j=0;j<n;j++)
-      {
-        if( (TMath::Abs(gem2[j].x-x_hycal) < dx) && ( TMath::Abs(gem2[j].y-y_hycal) < dy) )
-        {
-	    dx = TMath::Abs(gem2[j].x-x_hycal);
-	    dy = TMath::Abs(gem2[j].x-y_hycal); 
-	    m_index = j;
-	    m_e = pHHit->at(i).E;
-	    match_gem2 = 1;
-	    match_gem1 = 0;
-	    hXDiffMatch->Fill(gem2[j].x - x_hycal);
-	    hYDiffMatch->Fill(gem2[j].y - y_hycal);
-            hhXDiffMatchVsEnergy->Fill(m_e, gem2[j].x - x_hycal);
-	    hhYDiffMatchVsEnergy->Fill(m_e, gem2[j].y - y_hycal);
-        }
-      }
+      int match_gem1 = 0;
+      int match_gem2 = 0;
+      float m_index = 0;
+      float m_e = 0;
+
+      // search GEM1
+      int n = gem1.size();
+      if(n > 0)
+	{
+	  double x_hycal = (pHHit->at(i).x) *z_gem1/z_hycal;
+	  double y_hycal = (pHHit->at(i).y) *z_gem1/z_hycal;
+	  for(int j=0;j<n;j++)
+	    {
+	      if( (TMath::Abs(gem1[j].x-x_hycal) < dx) && ( TMath::Abs(gem1[j].y-y_hycal) < dy) )
+		{
+		  dx = TMath::Abs(gem1[j].x-x_hycal);
+		  dy = TMath::Abs(gem1[j].y-y_hycal); 
+		  m_index = j;
+		  m_e = pHHit->at(i).E;
+		  match_gem1 = 1;
+		  match_gem2 = 0;
+		  hXDiffMatch->Fill(gem1[j].x - x_hycal);
+		  hYDiffMatch->Fill(gem1[j].y - y_hycal);
+		  hhXDiffMatchVsEnergy->Fill(m_e, gem1[j].x - x_hycal);
+		  hhYDiffMatchVsEnergy->Fill(m_e, gem1[j].y - y_hycal);
+		}
+	    }
+	}
+
+      //continue search GEM2
+      n = gem2.size();
+      if(n>0)
+	{
+	  double x_hycal = (pHHit->at(i).x) *z_gem2/z_hycal;
+	  double y_hycal = (pHHit->at(i).y) *z_gem2/z_hycal;
+	  for(int j=0;j<n;j++)
+	    {
+	      if( (TMath::Abs(gem2[j].x-x_hycal) < dx) && ( TMath::Abs(gem2[j].y-y_hycal) < dy) )
+		{
+		  dx = TMath::Abs(gem2[j].x-x_hycal);
+		  dy = TMath::Abs(gem2[j].x-y_hycal); 
+		  m_index = j;
+		  m_e = pHHit->at(i).E;
+		  match_gem2 = 1;
+		  match_gem1 = 0;
+		  hXDiffMatch->Fill(gem2[j].x - x_hycal);
+		  hYDiffMatch->Fill(gem2[j].y - y_hycal);
+		  hhXDiffMatchVsEnergy->Fill(m_e, gem2[j].x - x_hycal);
+		  hhYDiffMatchVsEnergy->Fill(m_e, gem2[j].y - y_hycal);
+		}
+	    }
+	}
+      //after searching
+      if( (match_gem1 == 1) && (match_gem2 == 1) ) cout<<"GEMPhysHandler::HyCalGEMPosMatch(): error...."<<endl;
+      if( match_gem1 == 1 ) { gem1[m_index].energy = m_e; res_gem1.push_back(gem1[m_index]);}
+      if( match_gem2 == 1 ) { gem2[m_index].energy = m_e; res_gem2.push_back(gem2[m_index]);}
     }
-    //after searching
-    if( (match_gem1 == 1) && (match_gem2 == 1) ) cout<<"GEMPhysHandler::HyCalGEMPosMatch(): error...."<<endl;
-    if( match_gem1 == 1 ) { gem1[m_index].energy = m_e; res_gem1.push_back(gem1[m_index]);}
-    if( match_gem2 == 1 ) { gem2[m_index].energy = m_e; res_gem2.push_back(gem2[m_index]);}
-  }
   
   gem1.clear();
   gem2.clear();
   if(res_gem1.size() > 0)
-  {
-    gem1 = res_gem1;
+    {
+      gem1 = res_gem1;
     
-  }
+    }
   if(res_gem2.size() > 0)
-  {
-    gem2 = res_gem2;
-  }
+    {
+      gem2 = res_gem2;
+    }
 
   if(nhits_hycal == 2)
-  {
-    for(int i=0;i<nhits_hycal;i++)
     {
-      hhHyCalClusterMap2ClusterBeforeMatch->Fill(pHHit->at(i).x, pHHit->at(i).y);
+      for(int i=0;i<nhits_hycal;i++)
+	{
+	  hhHyCalClusterMap2ClusterBeforeMatch->Fill(pHHit->at(i).x, pHHit->at(i).y);
+	}
     }
-  }
 
   if( gem1.size() + gem2.size() == 2 )
-  {
-    // to detect gem moller efficiency
-    // see after match , how many two cluster events in gem
-    for(int i = 0;i<res_gem1.size();i++)
     {
-        hhGEMClusterMap2ClusterAfterMatch->Fill(res_gem1[i].x, res_gem1[i].y);
+      // to detect gem moller efficiency
+      // see after match , how many two cluster events in gem
+      for(int i = 0;i<res_gem1.size();i++)
+	{
+	  hhGEMClusterMap2ClusterAfterMatch->Fill(res_gem1[i].x, res_gem1[i].y);
+	}
+      for(int i = 0;i<res_gem2.size();i++)
+	{
+	  hhGEMClusterMap2ClusterAfterMatch->Fill(res_gem2[i].x, res_gem2[i].y);
+	}
     }
-    for(int i = 0;i<res_gem2.size();i++)
-    {
-        hhGEMClusterMap2ClusterAfterMatch->Fill(res_gem2[i].x, res_gem2[i].y);
-    }
-  }
 
   if( (gem1.size() + gem2.size()) > 0)
-  {
-    if( (nhits_gem1 == 1) && (nhits_gem2==0) &&  (nhits_hycal >=2) )
     {
-      double theta = TMath::Sqrt( (res_gem1[0].x)*(res_gem1[0].x)+(res_gem1[0].y)*(res_gem1[0].y)  )/z_gem1 *180 /PI;
-      hhEnergyVsAngleHyCal2CGEM1C->Fill(theta, gem1[0].energy);
-      hhGEMClusterMapHyCal2GEM1->Fill( res_gem1[0].x, res_gem1[0].y);
-      for(int i=0;i<nhits_hycal;i++)
-      {
-          hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
-      }
-    }
-    if( (nhits_gem2 == 1) && (nhits_gem1==0) &&  (nhits_hycal >=2) )
-    {
-      double theta = TMath::Sqrt( (res_gem2[0].x)*(res_gem2[0].x)+(res_gem2[0].y)*(res_gem2[0].y)  )/z_gem2 *180 /PI;
-      hhEnergyVsAngleHyCal2CGEM1C->Fill(theta, gem2[0].energy);
-      hhGEMClusterMapHyCal2GEM1->Fill( res_gem2[0].x, res_gem2[0].y);
-      for(int i=0;i<nhits_hycal;i++)
-      {
-          hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
-      }
+      if( (nhits_gem1 == 1) && (nhits_gem2==0) &&  (nhits_hycal >=2) )
+	{
+	  double theta = TMath::Sqrt( (res_gem1[0].x)*(res_gem1[0].x)+(res_gem1[0].y)*(res_gem1[0].y)  )/z_gem1 *180 /PI;
+	  hhEnergyVsAngleHyCal2CGEM1C->Fill(theta, gem1[0].energy);
+	  hhGEMClusterMapHyCal2GEM1->Fill( res_gem1[0].x, res_gem1[0].y);
+	  for(int i=0;i<nhits_hycal;i++)
+	    {
+	      hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
+	    }
+	}
+      if( (nhits_gem2 == 1) && (nhits_gem1==0) &&  (nhits_hycal >=2) )
+	{
+	  double theta = TMath::Sqrt( (res_gem2[0].x)*(res_gem2[0].x)+(res_gem2[0].y)*(res_gem2[0].y)  )/z_gem2 *180 /PI;
+	  hhEnergyVsAngleHyCal2CGEM1C->Fill(theta, gem2[0].energy);
+	  hhGEMClusterMapHyCal2GEM1->Fill( res_gem2[0].x, res_gem2[0].y);
+	  for(int i=0;i<nhits_hycal;i++)
+	    {
+	      hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
+	    }
 
+	}
     }
-  }
 
   hNbPointsMatch->Fill( res_gem1.size() + res_gem2.size() );
 
 #ifndef CLEANUP
-    return res_gem1.size() + res_gem2.size();
+  return res_gem1.size() + res_gem2.size();
 #endif
 
 #ifdef CLEANUP
   if ( res_gem1.size() + res_gem2.size() > 2)
-     return 0;
+    return 0;
   else 
-     return res_gem1.size() + res_gem2.size();
+    return res_gem1.size() + res_gem2.size();
 #endif
 }
 
@@ -1831,8 +1837,8 @@ void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<G
   float ThetaSmall2 = 1.0/180.0 * PI;
   float ThetaLarge2 = 1.1/180.0 * PI;
 
-   // Moller events selection
-   //     require them in different quadrants, very rough
+  // Moller events selection
+  //     require them in different quadrants, very rough
  
   if( (gem1.size() == 2)&&(gem2.size() == 0)) 
     { 
@@ -1850,15 +1856,15 @@ void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<G
 
 	  //2d ring
 	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ) )
-	  {
-	    hhMoller2DRingBeforeMatch->Fill(gem1[0].x, gem1[0].y);
-	    hhMoller2DRingBeforeMatch->Fill(gem1[1].x, gem1[1].y);
-	  }
+	    {
+	      hhMoller2DRingBeforeMatch->Fill(gem1[0].x, gem1[0].y);
+	      hhMoller2DRingBeforeMatch->Fill(gem1[1].x, gem1[1].y);
+	    }
 	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ) )
-	  {
-	    hhMoller2DRingBeforeMatch2->Fill(gem1[0].x, gem1[0].y);
-	    hhMoller2DRingBeforeMatch2->Fill(gem1[1].x, gem1[1].y);
-	  }
+	    {
+	      hhMoller2DRingBeforeMatch2->Fill(gem1[0].x, gem1[0].y);
+	      hhMoller2DRingBeforeMatch2->Fill(gem1[1].x, gem1[1].y);
+	    }
 	} 
     }
   else if( (gem2.size() == 2)&&(gem1.size() == 0))
@@ -1877,44 +1883,46 @@ void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<G
 
 	  //2d ring
 	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ) )
-	  {
-	    hhMoller2DRingBeforeMatch->Fill(gem2[0].x, gem2[0].y);
-	    hhMoller2DRingBeforeMatch->Fill(gem2[1].x, gem2[1].y);
-	  }
+	    {
+	      hhMoller2DRingBeforeMatch->Fill(gem2[0].x, gem2[0].y);
+	      hhMoller2DRingBeforeMatch->Fill(gem2[1].x, gem2[1].y);
+	    }
 	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ) )
-	  {
-	    hhMoller2DRingBeforeMatch2->Fill(gem2[0].x, gem2[0].y);
-	    hhMoller2DRingBeforeMatch2->Fill(gem2[1].x, gem2[1].y);
-	  }
+	    {
+	      hhMoller2DRingBeforeMatch2->Fill(gem2[0].x, gem2[0].y);
+	      hhMoller2DRingBeforeMatch2->Fill(gem2[1].x, gem2[1].y);
+	    }
 	}
     }
   else if ( (gem2.size() == 1)&&(gem1.size() == 1) )
     {
-    	{
-	  if(  ( (gem1[0].x)*(gem2[0].x) < 0 ) && ( gem1[0].y* (gem2[0].y) < 0 ) ) 
-	    { 
-	      double temp = 0;
-	      //1st electron
-	      theta = TMath::Sqrt( (gem1[0].x)*(gem1[0].x) + gem1[0].y*gem1[0].y) / z_gem1;
-	      theta = TMath::ATan(theta);
+      {
+	if(  ( (gem1[0].x)*(gem2[0].x) < 0 ) && ( gem1[0].y* (gem2[0].y) < 0 ) ) 
+	  { 
+	    double temp = 0;
+	    //1st electron
+	    theta = TMath::Sqrt( (gem1[0].x)*(gem1[0].x) + gem1[0].y*gem1[0].y) / z_gem1;
+	    theta = TMath::ATan(theta);
 
-	      temp = theta;
-	      //2nd electron
-	      theta = TMath::Sqrt( (gem2[0].x)*(gem2[0].x) + gem2[0].y*gem2[0].y) / z_gem2;
-	      theta = TMath::ATan(theta);
+	    temp = theta;
+	    //2nd electron
+	    theta = TMath::Sqrt( (gem2[0].x)*(gem2[0].x) + gem2[0].y*gem2[0].y) / z_gem2;
+	    theta = TMath::ATan(theta);
 
-	      //2d ring
-	      if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ))
+	    //2d ring
+	    if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ))
               {
 	        hhMoller2DRingBeforeMatch->Fill(gem2[0].x, gem2[0].y);
 	        hhMoller2DRingBeforeMatch->Fill(gem1[0].x, gem1[0].y);
 	      }
-	      if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ))
+	    if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ))
               {
 	        hhMoller2DRingBeforeMatch2->Fill(gem2[0].x, gem2[0].y);
 	        hhMoller2DRingBeforeMatch2->Fill(gem1[0].x, gem1[0].y);
 	      }
-	    }
-	}
+	  }
+      }
     } 
 }
+
+

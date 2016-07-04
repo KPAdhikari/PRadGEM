@@ -58,7 +58,6 @@ public:
 
   template<class T> void ProcessMollerAfterCorrection(T *hit_decoder);
 
-
   int GEMHyCalPosMatch(int i, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit);
   int HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit);
 
@@ -81,8 +80,9 @@ private:
   int neff;
   
   int nScinEvents;
+  int nHyCalEvents;
   // totoal number of events 
-  int nEntry;
+  int nTotalEvents;
 
   GEMRawDecoder *fRawDecoder;
   GEMConfigure config;
