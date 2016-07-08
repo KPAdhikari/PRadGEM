@@ -18,26 +18,14 @@
 #include <TMath.h>
 #include <TDirectory.h>
 
-#include <stdio.h> //for getchar()
+#include <stdio.h>
 
 //evio
 #include "evioUtil.hxx"
 #include "evioFileChannel.hxx"
 
-#include "GEMRawDecoder.h"
-#include "PRDMapping.h"
-#include "GEMRawPedestal.h"
 #include "GEMHistoManager.h"
 #include "GEMConfigure.h"
-#include "GEMPedestal.h"
-#include "GEMDataStruct.h"
-
-//decoding data after zero suppression
-#include "GEMZeroHitDecoder.h"
-
-// chao
-#include "PRadDataHandler.h"
-#include "PRadEvioParser.h"
 
 class PRadReconstructor;
 

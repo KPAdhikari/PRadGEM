@@ -8,122 +8,58 @@
 #include "PRadTDCGroup.h"
 #include "PRadBenchMark.h"
 
-//#include "PRadReconstructor.h"
 using namespace std;
-using namespace evio;
-
-// GEM Efficiency Macros
-#define TDC_CHECK_EFFICIENCY
-//#undef  TDC_CHECK_EFFICIENCY
-
-#define ZEROSUPPRESSION
-#undef ZEROSUPPRESSION
-
-//#define HyCalTimingCut
-//#undef HyCalTimingCut
-
-#define CLEANUP
-//#undef CLEANUP
 
 #define PI 3.1415926
 
 GEMPhysHandler::GEMPhysHandler()
 {
-  fRawDecoder = 0;
-
-  nElectron = 0;
-  nElectron_126=0;
-  nElectron_127=0;
-
-  nScinEvents = 0;
-  nHyCalEvents = 0;
-  nTotalEvents = 0;  // to get how many events in total, this to compute photon conversion probability
-  neff = 0;
-
-  mAPVRawHistos.clear();
-  mAPVRawTSs.clear();
-  vSRSSingleEventData.clear();
-  vSRSZeroEventData.clear();
-  FECs.clear();
-
-  PRDMapping *mapping = PRDMapping::GetInstance();
-  FECs = mapping->GetBankIDSet();
-  
-  string pedestal_file = config.GetLoadPedPath();
-  ped = new GEMPedestal(pedestal_file);
-  ped -> LoadPedestal( );
-  //for debug
-  cout<<"FECs Found:  ";
-  set<int>::iterator it;
-  for(it=FECs.begin(); it!=FECs.end(); ++it)
-    {
-      cout<<(*it)<<"  ";
-    }
-  cout<<endl;
-
-  //chao
   pHandler = new PRadDataHandler();
-  pHandler->ReadTDCList("/home/xbai/w/pRad/source/PRadDecoder/config/tdc_group_list.txt");
-  pHandler->ReadChannelList("/home/xbai/w/pRad/source/PRadDecoder/config/module_list.txt");
-  pHandler->BuildChannelMap();
-  pHandler->ReadPedestalFile("/home/xbai/w/pRad/source/PRadDecoder/config/pedestal.dat");
-  pHandler->ReadCalibrationFile("/home/xbai/w/pRad/source/PRadDecoder/config/calibration.txt");
-  //pHandler->EnableReconstruction();
+  pDSTParser = new PRadDSTParser(pHandler);
 
-  reconstruct = new PRadReconstructor();
-  reconstruct->SetHandler(pHandler);
+  pHandler -> ReadConfig("config.txt");
+
+  pGEMReconstructor = new PRadGEMReconstructor(pHandler);
 
   totalEnergyDeposit = 1800; //MeV
   beamEnergy = 2.147;//GeV
-  //compute intersection points
-  px1 = 0x270F;py1=0x270F;px2=0x270F;py2=0x270F;
-  cx1 = 0x270F;cy1=0x270F;cx2=0x270F;cy2=0x270F;
 
-  px1_c = 0x270F;py1_c=0x270F;px2_c=0x270F;py2_c=0x270F;
-  cx1_c = 0x270F;cy1_c=0x270F;cx2_c=0x270F;cy2_c=0x270F;
+  //compute intersection points
+  px1 = 0x270F;py1=0x270F;
+  px2=0x270F;py2=0x270F;
+  cx1 = 0x270F;cy1=0x270F;
+  cx2=0x270F;cy2=0x270F;
+
+  px1_c = 0x270F;py1_c=0x270F;
+  px2_c=0x270F;py2_c=0x270F;
+  cx1_c = 0x270F;cy1_c=0x270F;
+  cx2_c=0x270F;cy2_c=0x270F;
  
   //test
   hhTimeCorrelation = new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
   hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
 
   BookHistos();
-
-  // origin transfer
-  O_Transfer = 253.2;
-  OverlapStart = 231.2;
-
 }
 
 GEMPhysHandler::~GEMPhysHandler()
 {
-  mAPVRawHistos.clear();
-  mAPVRawTSs.clear();
-  ped->Delete();
 }
 
 void GEMPhysHandler::ProcessAllFiles()
 {
-  //GEMConfigure config;
   int nFile = config.nFile;
-  cout<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "<<nFile<<endl;
+
+  cout<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "
+      <<nFile
+      <<endl;
+
   for(int i=0;i<nFile;i++)
     {
       cout<<config.fileList[i]<<endl;
     }
-  cout<<"TDC Cut: "<<config.TDC_Channel<<", Start TIME:  "<<config.TDC_Start<<", END TIME:  "<<config.TDC_End<<", HyCal Energy Cut:  "<<config.Hycal_Energy<<endl;
 
-  // to compute photon conversion rate
-  nTotalEvents = 0;
-  neff = 0;
-  nElectron = 0;
-
-
-  if(config.fileList[0].find("evio.0")!= string::npos)
-    {
-      pHandler->InitializeByData(config.fileList[0].c_str());
-    };
-
-  for(int i=1;i<nFile;i++)
+  for(int i=0;i<nFile;i++)
     {
       filename = config.fileList[i];
       ProcessAllEvents(-1);
@@ -132,439 +68,140 @@ void GEMPhysHandler::ProcessAllFiles()
 
   // Save Histos
   SavePhysResults();
-
-#ifdef TDC_CHECK_EFFICIENCY
-  cout<<endl<<endl;
-  double eff_real = (double)neff/nElectron;
-  cout<<"GEM Hit: "<<neff<<endl;
-  cout<<"TDC:  "<<nElectron<<endl;
-  cout<<"Total Number of Events in "<<nFile<<" Files: "<<nTotalEvents<<endl;
-  cout<<"------------------------------------"<<endl;
-  cout<<"Overall Detector Efficiency: "<<eff_real<<endl;
-  cout<<"------------------------------------"<<endl;
-#endif
-
 }
 
 int GEMPhysHandler::ProcessAllEvents(int evtID )
 {
   cout<<"Process File:  "<<filename<<endl;
   int entry = 0;
-  double ntrigger = 0.0; // for detector efficiency
 
   PRadBenchMark timer;
-  try{
-    evioFileChannel chan(filename.c_str(), "r");
-    chan.open();
-    while(chan.read())
-      {
-        ntrigger +=1.0;
-	nTotalEvents += 1.0;
-        pHandler->Decode(chan.getBuffer());
-	pHyCalHit =& reconstruct->CoarseHyCalReconstruct(pHandler->GetEventCount() - 1); 
-        //pHyCalHit = &HyCalHit;
-        //cout<<pHyCalHit->size()<<endl;
-        hHyCalClusterMul->Fill(pHyCalHit->size());
-       	for(int i=0;i<pHyCalHit->size(); i++)
-	  {
-	    hhHyCalClusterMap->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
 
-	    hHyCalEnergy->Fill(pHyCalHit->at(i).E);
-	    if(pHyCalHit->size() == 1) hHyCalEnergyEp->Fill(pHyCalHit->at(i).E);
-	    if(pHyCalHit->size() == 2) {hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);}
-	  }
-       
-	vSRSSingleEventData.clear();
-        vSRSZeroEventData.clear();
-
-	evioDOMTree event(chan);
-	evioDOMNodeListP fecEventList = event.getNodeList( isLeaf() );
-	//cout<<"total number of all banks: "<<fecEventList->size()<<endl;
-
-	evioDOMNodeList::iterator iter;
-
-        int convert = 1;
-        int HyCal_pos_match = 1;
-	int HyCalTimingCut = 1;
-
-#ifdef TDC_CHECK_EFFICIENCY
-        // photon total energy deposited in HyCal
-	double photon_energy = 0;
-	photon_energy = pHandler->GetEnergy();
-
-	for(iter=fecEventList->begin(); iter!=fecEventList->end(); ++iter)
-	  {
-            if( (*iter)->tag == 57633 ) // ti bank
-              {
-                vector<uint32_t> *ti_vec = (*iter)->getVector<uint32_t>();
-                int ti_size = ti_vec->size();
-		if(config.UseHyCalTimingCut == 1)
-		  {
-		    HyCalTimingCut = 0;
-		    //HyCal timing cut
-		    //G22  time slot 97  ; G1:112; G2:100; G6:113
-		    //G21  time slot 115 ; G10:67; W12:92
-		    //W31  time slot 116 ; W7:82 ; W8: 76
-		    /***************************************************
-		     * HyCal TDC Group 
-		     * G1  112  :   G2  100 :  G3  109 :  G4  64
-		     * G5  69   :   G6  113 :  G25 65  :  W6  66
-		     * G10 67   :   W11  68 :  W18 70  :  W15 72
-		     * W9  73   :   W20  74 :  W33 75  :  W8  76
-		     * W27 77   :   W21  78 :   W2 80  :  W26 81
-		     * W7  82   :   W1   83 :   W3 84  :  W14 85
-		     * W24 88   :   G24  89 :   G20 90 :  G15 91
-		     * W12 92   :   W36  93 :   W30 94 :  G11 96
-		     * G22 97   :   W25  98 :   W13 99 :  G2  100
-		     * W32 101  :   W28  104:   W4  105:  W10 106
-		     * W16 107  :   W22  108:   G3  109:  G23 110
-		     * G16 114  :  G21   115:   W31 116:  W19 117
-		     * W23 120  :   W34  121:   W17 122:  W35 123
-		     * W29 124  :    W5  125: Scin S1 126 : Scin S2 127
-		     * ************************************************/
-		    for(int i=0;i<ti_size;i++)
-		      {
-			if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
-			int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
-			//if( (tdc_ch == 121)||(tdc_ch == 75)||(tdc_ch == 77) ||( tdc_ch == 104))
-			//if( (tdc_ch == 67)||(tdc_ch == 92) )
-			if( (tdc_ch == 123))
-			  {
-			    double tdc_value = (ti_vec->at(i)) & 0x7ffff; 
-			    if(ntrigger<100) cout<<tdc_value<<endl;
-			    if( (tdc_value>config.Hycal_Timing_Cut_Start) && (tdc_value<config.Hycal_Timing_Cut_End) ) 
-			      {
-				HyCalTimingCut = 1;  
-				timing_test = tdc_value;
-				break;
-			      }
-			  }
-		      }
-		  }
-
-		// Scintillator Timing Cut ...
-		// time slot 126
-		// time slot 127
-                if(config.UseScinTDCCut == 1)
-		  {
-		    convert = 0;
-		    int TF126 = 0;
-		    int TF127 = 0;
-		    for(int i=0;i<ti_size;i++)
-		      {
-			if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
-			int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
-		   
-			//printf("0x%x \n", ti_vec->at(i));
-			if(config.TDC_Channel == "126")
-			  {
-			    //cout<<" 126 cut..."<<endl;
-			    if( (tdc_ch == 126)) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				//cout<<config.TDC_Start<<"  "<<config.TDC_End<<endl;
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    //hhTimeCorrelation->Fill(timing_test, tdc_value);
-				    //hTimeDiff->Fill(tdc_value - timing_test);
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-
-			if(config.TDC_Channel == "127")
-			  {
-			    //cout<<" 127 cut ..."<<endl;
-			    if( (tdc_ch == 127)) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-
-			if(config.TDC_Channel == "126and127")
-			  {
-			    //cout<< " 126 and 127 cut ..."<<endl;
-			    if( (tdc_ch == 126) ) TF126 = 1;
-			    if( (tdc_ch == 127) ) TF127 = 1;
-			    if( (TF126 == 1) && (TF127 == 1) ) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    // cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    //hhTimeCorrelation->Fill(timing_test, tdc_value);
-				    //hTimeDiff->Fill(tdc_value - timing_test);
-
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-
-			if(config.TDC_Channel == "126or127")
-			  {
-			    //cout<< " 126 or 127 cut ..."<<endl;
-			    if( (tdc_ch == 126) || (tdc_ch == 127) ) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    hhTimeCorrelation->Fill(timing_test, tdc_value);
-				    hTimeDiff->Fill(tdc_value - timing_test);
-
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-		      }
-		  }
-              }
-	  }
-
-        if(ntrigger<10)
-	  cout<<"HyCalTimingCut : "<<HyCalTimingCut
-	      <<"  convert: "<<convert
-	      <<"  photon energy: "<<photon_energy
-	      <<endl;
-
-	if( HyCalTimingCut == 1)
-	  nHyCalEvents ++ ;
-	if( convert == 1)
-	  nScinEvents ++ ;
-
-	if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config.Hycal_Energy) ) 
-	  { 
-	    //cout<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
-	    if(ntrigger<10) cout<<"GEMPhys::ProcessEvents: Energy HyCal: "<<photon_energy<<endl;
-	    nElectron+=1;
-	  }
-	else continue;
-#endif
-
-	for(iter=fecEventList->begin(); iter!=fecEventList->end(); ++iter)
-	  {
-#ifndef ZEROSUPPRESSION
-	    if( ( (*iter)->tag == 57631) && 
-	        ( ((int)((*iter)->num)==5) || ((int)((*iter)->num)==6) || 
-		  ((int)((*iter)->num)==7) || ((int)((*iter)->num)==8) || 
-		  ((int)((*iter)->num)==9) || ((int)((*iter)->num)==10)|| 
-		  ((int)((*iter)->num)==11)|| ((int)((*iter)->num)==12) ) 
-		)
-	      {
-		vector<uint32_t> *vec = (*iter)->getVector<uint32_t>();
-		if(vec!=NULL  && vec->size()>0)
-		  {
-		    vSRSSingleEventData.reserve(vSRSSingleEventData.size() + vec->size() );
-		    vSRSSingleEventData.insert(vSRSSingleEventData.end(), vec->begin(), vec->end() );
-		  }
-		else
-		  {
-		    cout<<"found NULL contents in fec.."<<endl;
-		  }
-	      }
-#endif
-#ifdef ZEROSUPPRESSION
-            // zero suppression bank data
-            if( ( (*iter)->tag == 57631) && ( ((int)(*iter)->num) == 99) )
-	      {
-		vector<uint32_t> *vec = (*iter)->getVector<uint32_t>();
-		if(vec!=NULL  && vec->size()>0)
-		  {
-		    vSRSZeroEventData.reserve(vSRSZeroEventData.size() + vec->size() );
-		    vSRSZeroEventData.insert(vSRSZeroEventData.end(), vec->begin(), vec->end() );
-		  }
-		else
-		  {
-		    cout<<"found NULL contents in fec.."<<endl;
-		  }
-	      }
-#endif
-
-	  }
-
-	{	
+  while(pDSTParser->Read() && entry < 30000)
+    {
+      if( pDSTParser->EventType() == PRad_DST_Event) 
+	{
 	  ++entry;
-	  if( (evtID != -1) && (entry > evtID) ) break; // process evtID many events
-	  if(ntrigger<10) cout<<"GEMPhysHandelr::entry: "<<entry<< " nElectron: " << nElectron << " nScinEvents: "<<nScinEvents<<endl;
-	  if(ntrigger<10) cout<<"SRS Event Size [uint_32]:"<<vSRSSingleEventData.size()<<endl;
-
-#ifndef ZEROSUPPRESSION
-	  if (vSRSSingleEventData.size() == 0 ) continue; // if no srs event found, go to next event
-#endif
-
-#ifdef ZEROSUPPRESSION
-          if(vSRSZeroEventData.size() == 0 ) continue;
-#endif
-	  int size = vSRSSingleEventData.size();
-	  uint32_t buf[size];
-	  for(int i=0;i<size;i++)
-	    {
-	      buf[i]=vSRSSingleEventData[i];
-	    }
-
-          int zero_size = vSRSZeroEventData.size();
-	  uint32_t buf_zero[zero_size];
-	  for(int j=0;j<zero_size;j++)
-	    {
-	      buf_zero[j] = vSRSZeroEventData[j];
-	    }
-
-	  // do the work
-#ifndef ZEROSUPPRESSION
-	  GEMOnlineHitDecoder online_hit(buf, size, ped);
-#endif
-#ifdef ZEROSUPPRESSION
-          GEMZeroHitDecoder online_hit(buf_zero, zero_size, ped);
-#endif
-	  // Fill histos
-	  vector<GEMClusterStruct> gem1, gem2;
-	  vector<GEMClusterStruct> hgem1, hgem2;
-	  online_hit.GetClusterGEM(gem1, gem2);
-	  online_hit.GetClusterHyCalCutMode(hgem1, hgem2);
-          online_hit.FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
-
-	  //general cut
-	  //if( (gem1.size()>=5 ) || (gem2.size()>=5) ) continue;
-	  //if( energy < 900  || energy > 1300) continue;
-
-	  // offset between GEMs
-	  // [1]: refer to "GEMZeroHitDecoder.cxx"
-	  /*
-	   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	   * overlapping area: 44mm
-	   * x side length: 550.4
-	   * overlapping area starting with: 550.4/2 -44 = 231.2
-	   *
-	   * origin trasfer to beam hole center:
-	   *    transfered distance: 550.4/2 - 44/2 = 253.2
-	   *    GEM1 coordinate transfer: x1 = x1 - 253.2; y1 = y1
-	   *    GEM2 coordinate transfer: x2 = 253.2 - x2; y2 = -y2
-	   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	   */
-
-          // compute offsets between two gem chambers
-	  if( (gem1.size()==1) && (gem2.size()==1) )
-	    {
-	      if( (gem1[0].x > OverlapStart) && (gem2[0].x > OverlapStart) )
-		{
-		  {
-		    //z offset correction
-		    double z_gem1 = 5300; //mm
-		    double z_gem2 = 5260; //mm
-		    double x1prime = (gem1[0].x-O_Transfer)*z_gem2/z_gem1;
-		    double y1prime = gem1[0].y*z_gem2/z_gem1;
-		    hYOffsetGEM->Fill( ( y1prime ) - ( -gem2[0].y) );
-		    hXOffsetGEM->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
-
-		    //after correction
-		    double xoffset = -0.3618;// x1 - x2
-		    double yoffset = 0.1792; // y1 - y2
-		    x1prime = (gem1[0].x - xoffset -O_Transfer)*z_gem2/z_gem1;
-		    y1prime = (gem1[0].y - yoffset )*z_gem2/z_gem1;
-		    hYOffsetGEMAfterCorrection->Fill( ( y1prime ) - ( -gem2[0].y) );
-		    hXOffsetGEMAfterCorrection->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
-		  }
-		}
-	    }
-
-	  //nb of clusters per event
-	  CharactorizeGEM(&online_hit);
-	  ProcessEp(&online_hit);
-	  ProcessMoller(&online_hit);
-          ProcessMollerAfterCorrection(&online_hit);
-
-	  if(hgem1.size() > 0)
-	    {
-	      for(int i=0;i<hgem1.size();i++)
-		{
-		  hhGEMClusterMap->Fill(hgem1[i].x, hgem1[i].y);
-		}
-	      if( hgem1.size() == 1)
-		{
-		  hhGEMClusterMapSingleCluster->Fill(hgem1[0].x, hgem1[0].y);
-		}
-	      if( hgem1.size() <= 2)
-		{
-		  hhGEMClusterMapMaxTwoCluster->Fill(hgem1[0].x, hgem1[0].y);
-		}
-	    }
-	  if(hgem2.size() > 0)
-	    {
-	      for(int i=0;i<hgem2.size();i++)
-		{
-		  hhGEMClusterMap->Fill(hgem2[i].x,hgem2[i].y);
-		}
-	      if( hgem2.size() == 1)
-		{
-		  hhGEMClusterMapSingleCluster->Fill(hgem2[0].x, hgem2[0].y);
-		}
-	      if( hgem2.size() <= 2)
-		{
-		  hhGEMClusterMapMaxTwoCluster->Fill(hgem2[0].x, hgem2[0].y);
-		}
-	    }
-
-	  // Calculate Detector Efficiency
-	  if( (gem1.size()>0) || (gem2.size()>0) )
-	    {
-	      neff +=1.0;
-	    }
+	  Analyze();
 	}
-      }
-
-    chan.close();
-
-    /*
-      TFile *f = new TFile("aaaa.root", "RECREATE");
-      pHandler->GetTDCGroup("S1")->GetHist()->Write();
-      pHandler->GetTDCGroup("S2")->GetHist()->Write();
-      pHandler->GetTDCGroup("G21")->GetHist()->Write();
-      pHandler->GetTDCGroup("G22")->GetHist()->Write();
-      f->Close();
-    */
-
-  } catch (evioException e) {
-    cerr <<endl <<e.toString() <<endl <<endl;
-    exit(EXIT_FAILURE);
-  }
+      else if (pDSTParser ->EventType() == PRad_DST_Epics)
+	{
+	  pHandler -> GetEPICSData().push_back(pDSTParser->GetEPICSEvent());
+	}
+    }
 
   cout << "used time: " << timer.GetElapsedTime() << " ms" << endl;
 
-  // claculate efficiency
-  double eff = neff/ntrigger;
-  cout<<"------------------------------------"<<endl;
-  cout<<"Overall Detector Efficiency: "<<eff<<endl;
-  cout<<"------------------------------------"<<endl;
-
-#ifdef TDC_CHECK_EFFICIENCY
-  double eff_real = (double)neff/nElectron;
-  cout<<"GEM Hit: "<<neff<<endl;
-  cout<<"TDC Events:  "<<nElectron<<endl;
-  cout<<"Number of Events in Single File: "<<ntrigger<<endl;
-  cout<<"------------------------------------"<<endl;
-  cout<<"Overall Detector Efficiency: "<<eff_real<<endl;
-  cout<<"------------------------------------"<<endl;
-#endif
-
   return entry;
+}
+
+void GEMPhysHandler::Analyzer()
+{
+  auto event = pDSTParser -> GetEvent();
+  auto gem_cluster = pGEMReconstrctor->CoarseGEMReconstruct(event);
+  auto hycal_cluster = pHandler->GetHyCalCluster(event);
+
+  hHyCalClusterMul->Fill(hycal_cluster->size());
+  for(int i=0;i<hycal_cluster->size(); i++)
+    {
+      hhHyCalClusterMap->Fill(hycal_cluster->at(i).x, hycal_cluster->at(i).y);
+      hHyCalEnergy->Fill(hycal_cluster->at(i).E);
+
+      if(hycal_cluster->size() == 1) 
+	hHyCalEnergyEp->Fill(hycal_cluster->at(i).E);
+      else if(hycal_cluster->size() == 2) 
+	{
+	  hHyCalEnergyMoller->Fill(hycal_cluster->at(i).E);
+	}
+    }
+
+  vector<PRadGEMCluster> gem1, gem2;
+  vector<PRadGEMCluster> hgem1, hgem2;
+  pGEMClusterReconstruct->GEMClusteringLocal(gem1, gem2);
+  pGEMClusterReconstruct->GEMClusteringHycal(hgem1, hgem2);
+
+  online_hit.FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
+
+  //general cut
+  //if( (gem1.size()>=5 ) || (gem2.size()>=5) ) continue;
+  //if( energy < 900  || energy > 1300) continue;
+
+  // offset between GEMs
+  // [1]: refer to "GEMZeroHitDecoder.cxx"
+  /*
+   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   * overlapping area: 44mm
+   * x side length: 550.4
+   * overlapping area starting with: 550.4/2 -44 = 231.2
+   *
+   * origin trasfer to beam hole center:
+   *    transfered distance: 550.4/2 - 44/2 = 253.2
+   *    GEM1 coordinate transfer: x1 = x1 - 253.2; y1 = y1
+   *    GEM2 coordinate transfer: x2 = 253.2 - x2; y2 = -y2
+   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   */
+
+  // compute offsets between two gem chambers
+  if( (gem1.size()==1) && (gem2.size()==1) )
+    {
+      if( (gem1[0].x > OverlapStart) && (gem2[0].x > OverlapStart) )
+	{
+	  {
+	    //z offset correction
+	    double z_gem1 = 5300; //mm
+	    double z_gem2 = 5260; //mm
+	    double x1prime = (gem1[0].x-O_Transfer)*z_gem2/z_gem1;
+	    double y1prime = gem1[0].y*z_gem2/z_gem1;
+	    hYOffsetGEM->Fill( ( y1prime ) - ( -gem2[0].y) );
+	    hXOffsetGEM->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
+
+	    //after correction
+	    double xoffset = -0.3618;// x1 - x2
+	    double yoffset = 0.1792; // y1 - y2
+	    x1prime = (gem1[0].x - xoffset -O_Transfer)*z_gem2/z_gem1;
+	    y1prime = (gem1[0].y - yoffset )*z_gem2/z_gem1;
+	    hYOffsetGEMAfterCorrection->Fill( ( y1prime ) - ( -gem2[0].y) );
+	    hXOffsetGEMAfterCorrection->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
+	  }
+	}
+    }
+
+  CharactorizeGEM(&online_hit);
+  ProcessEp(&online_hit);
+  ProcessMoller(&online_hit);
+  ProcessMollerAfterCorrection(&online_hit);
+
+  if(hgem1.size() > 0)
+    {
+      for(int i=0;i<hgem1.size();i++)
+	{
+	  hhGEMClusterMap->Fill(hgem1[i].x, hgem1[i].y);
+	}
+      if( hgem1.size() == 1)
+	{
+	  hhGEMClusterMapSingleCluster->Fill(hgem1[0].x, hgem1[0].y);
+	}
+      if( hgem1.size() <= 2)
+	{
+	  hhGEMClusterMapMaxTwoCluster->Fill(hgem1[0].x, hgem1[0].y);
+	}
+    }
+  if(hgem2.size() > 0)
+    {
+      for(int i=0;i<hgem2.size();i++)
+	{
+	  hhGEMClusterMap->Fill(hgem2[i].x,hgem2[i].y);
+	}
+      if( hgem2.size() == 1)
+	{
+	  hhGEMClusterMapSingleCluster->Fill(hgem2[0].x, hgem2[0].y);
+	}
+      if( hgem2.size() <= 2)
+	{
+	  hhGEMClusterMapMaxTwoCluster->Fill(hgem2[0].x, hgem2[0].y);
+	}
+    }
+
 }
 
 template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
@@ -578,10 +215,10 @@ template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
   double bottom = 0.0; //q_square = top/bottom
   double e0 = beamEnergy; //GeV
 
-  vector<GEMClusterStruct> gem1, gem2;
+  vector<PRadGEMCluster> gem1, gem2;
   hit_decoder->GetClusterHyCalPlusMode(gem1, gem2);
   
-  int s = HyCalGEMPosMatch(gem1, gem2, pHyCalHit);
+  int s = HyCalGEMPosMatch(gem1, gem2, hycal_cluster);
   // offset correction to beam line
   double xoffset_beam = 1.631;
   double yoffset_beam = 0.366;
@@ -687,12 +324,12 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
   double bottom = 0.0; //q_square = top/bottom
   double e0 = beamEnergy; //GeV
   
-  vector<GEMClusterStruct> gem1, gem2;
+  vector<PRadGEMCluster> gem1, gem2;
   hit_decoder->GetClusterHyCalPlusMode(gem1, gem2);
 
   GeometryMollerRing(gem1, gem2);
  
-  int s = HyCalGEMPosMatch(gem1, gem2, pHyCalHit);
+  int s = HyCalGEMPosMatch(gem1, gem2, hycal_cluster);
 
   if( s == 0 ) return ;
   //Moller events
@@ -1097,7 +734,7 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
   double bottom = 0.0; //q_square = top/bottom
   double e0 = beamEnergy; //GeV
   
-  vector<GEMClusterStruct> gem1, gem2;
+  vector<PRadGEMCluster> gem1, gem2;
 
   // GetCuster2DPositionBeamLine() returns a plane on GEM2, 
   // so the z coordinate is z_gem = z_gem2 = 5260mm
@@ -1105,7 +742,7 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
   //GeometryMollerRing(gem1, y1, x2, y2);
  
-  int s = HyCalGEMPosMatch(gem1, gem2, pHyCalHit);
+  int s = HyCalGEMPosMatch(gem1, gem2, hycal_cluster);
 
   if(s == 0) return ;
   //Moller events
@@ -1393,7 +1030,7 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
   double bottom = 0.0; //q_square = top/bottom
   double e0 = beamEnergy; //GeV
 
-  vector<GEMClusterStruct> gem1, gem2;
+  vector<PRadGEMCluster> gem1, gem2;
   hit_decoder->GetClusterGEM(gem1, gem2);
 
   int nbClusterPerEvent; 
@@ -1591,7 +1228,7 @@ void GEMPhysHandler::SavePhysResults()
   //f->Close();
 }
 
-int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit)
+int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<PRadGEMCluster> &gem, vector<HyCalHit> *pHHit)
 {
   if(gem.size() == 0)
     {
@@ -1620,7 +1257,7 @@ int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, ve
       return 0;
     }
   
-  vector<GEMClusterStruct> res_gem;
+  vector<PRadGEMCluster> res_gem;
 
   int n = gem.size();
   int nh = pHHit->size();
@@ -1659,7 +1296,7 @@ int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, ve
     }
 }
 
-int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit)
+int GEMPhysHandler::HyCalGEMPosMatch( vector<PRadGEMCluster> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit)
 {
   int nhits_gem1 = gem1.size();
   int nhits_gem2 = gem2.size();
@@ -1685,8 +1322,8 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
   double z_hycal = 5820; //mm
   double res = 10; // a larger range, 60mm
 
-  vector<GEMClusterStruct> res_gem1;
-  vector<GEMClusterStruct> res_gem2;
+  vector<PRadGEMCluster> res_gem1;
+  vector<PRadGEMCluster> res_gem2;
 
   int nh = pHHit->size();
   for(int i=0;i<nh;i++)
@@ -1825,7 +1462,7 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
 #endif
 }
 
-void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct>& gem2)
+void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<GEMClusterStruct>& gem2)
 {
   double z_gem1 = 5300; //mm
   double z_gem2 = 5260; //mm
