@@ -1,12 +1,10 @@
 #include "GEMPhysHandler.h"
 
-#include "GEMOnlineHitDecoder.h"
-#include "GEMZeroHitDecoder.h"
-
 #include "PRadDataHandler.h"
 #include "PRadReconstructor.h"
 #include "PRadTDCGroup.h"
 #include "PRadBenchMark.h"
+#include "PRadDSTParser.h"
 
 using namespace std;
 
@@ -19,7 +17,7 @@ GEMPhysHandler::GEMPhysHandler()
 
   pHandler -> ReadConfig("config.txt");
 
-  pGEMReconstructor = new PRadGEMReconstructor(pHandler);
+  pGEMReconstruct = new PRadGEMReconstructor(pHandler);
 
   totalEnergyDeposit = 1800; //MeV
   beamEnergy = 2.147;//GeV
@@ -37,7 +35,7 @@ GEMPhysHandler::GEMPhysHandler()
  
   //test
   hhTimeCorrelation = 
-      new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
+    new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
   hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
 
   BookHistos();
@@ -82,8 +80,14 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     {
       if( pDSTParser->EventType() == PRad_DST_Event) 
 	{
+	  auto event = pDSTParser -> GetEvent();
+          auto Gem_cluster = pGEMReconstruct->CoarseGEMReconstruct(event);
+          auto Hycal_cluster = pHandler->GetHyCalCluster(event);
+          gem_cluster = &Gem_cluster;
+          hycal_cluster = &Hycal_cluster;
+
 	  ++entry;
-	  Analyze();
+	  Analyzer();
 	}
       else if (pDSTParser ->EventType() == PRad_DST_Epics)
 	{
@@ -98,10 +102,6 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 
 void GEMPhysHandler::Analyzer()
 {
-  auto event = pDSTParser -> GetEvent();
-  auto gem_cluster = pGEMReconstrctor->CoarseGEMReconstruct(event);
-  auto hycal_cluster = pHandler->GetHyCalCluster(event);
-
   hHyCalClusterMul->Fill(hycal_cluster->size());
   for(int i=0;i<hycal_cluster->size(); i++)
     {
@@ -119,13 +119,13 @@ void GEMPhysHandler::Analyzer()
   vector<PRadGEMCluster> gem1, gem2;
   vector<PRadGEMCluster> hgem1, hgem2;
 
-  gem1 = pGEMClusterReconstruct->GEMClusteringLocal(0);
-  gem2 = pGEMClusterReconstruct->GEMClusteringLocal(1);
+  gem1 = pGEMReconstruct->GEMClusteringLocal(0);
+  gem2 = pGEMReconstruct->GEMClusteringLocal(1);
 
-  hgem1 = pGEMClusterReconstruct->GEMClusteringHycal(0);
-  hgem2 = pGEMClusterReconstruct->GEMClusteringHycal(1);
+  hgem1 = pGEMReconstruct->GEMClusteringHyCal(0);
+  hgem2 = pGEMReconstruct->GEMClusteringHyCal(1);
 
-  online_hit.FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
+  //online_hit.FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
 
   // compute offsets between two gem chambers
   if( (gem1.size()==1) && (gem2.size()==1) )
@@ -155,7 +155,6 @@ void GEMPhysHandler::Analyzer()
   CharactorizeGEM();
   ProcessEp();
   ProcessMoller();
-  ProcessMollerAfterCorrection();
 
   if(hgem1.size() > 0)
     {
@@ -200,7 +199,7 @@ void GEMPhysHandler::ProcessEp()
   double e0 = beamEnergy; //GeV
 
   vector<PRadGEMCluster> gem;
-  pGEMReconstruct->CoarseGEMReconstruct(gem);
+  gem  = *gem_cluster;
   
   //ep events
   //theta distribution for single cluster
@@ -208,7 +207,7 @@ void GEMPhysHandler::ProcessEp()
     { 
       // Ep energy cut
       if(gem[0].energy < totalEnergyDeposit ) return;
-      z_gem = gem[0].z;
+      double z_gem = gem[0].z;
       theta = TMath::Sqrt((gem[0].x)*(gem[0].x) + gem[0].y*gem[0].y) / z_gem;
       theta = TMath::ATan(theta);
       double theta_d = theta*180.0/PI;
@@ -222,11 +221,21 @@ void GEMPhysHandler::ProcessEp()
       q_square = top/bottom;
       hQSquareEp->Fill(q_square);
       hhQSquareScattAngleEp -> Fill(theta_d, q_square);
-      if( (theta_d > 0.7) && (theta_d<0.8) ) hQSquareEp1->Fill(q_square);
-      if( (theta_d > 1.0) && (theta_d<1.1) ) hQSquareEp2->Fill(q_square);
-      if( (theta_d > 1.5) && (theta_d<1.6) ) hQSquareEp3->Fill(q_square);
-      if( (theta_d > 2.0) && (theta_d<2.1) ) hQSquareEp4->Fill(q_square);
-      if(theta_d > 2.2) hQSquareEp5->Fill(q_square);
+
+      if( (theta_d > 0.7) && (theta_d<0.8) ) 
+	hQSquareEp1->Fill(q_square);
+
+      if( (theta_d > 1.0) && (theta_d<1.1) ) 
+	hQSquareEp2->Fill(q_square);
+
+      if( (theta_d > 1.5) && (theta_d<1.6) ) 
+	hQSquareEp3->Fill(q_square);
+
+      if( (theta_d > 2.0) && (theta_d<2.1) ) 
+	hQSquareEp4->Fill(q_square);
+
+      if(theta_d > 2.2) 
+	hQSquareEp5->Fill(q_square);
     }
 }
 
@@ -246,7 +255,7 @@ void GEMPhysHandler::ProcessMoller()
   GeometryMollerRing(gem1, gem2);
 
   vector<PRadGEMCluster> gem;
-  pGEMReconstruct->CoarseGEMReconstruct(gem);
+  gem = *gem_cluster;
    
   // moller 2d ring
   float ThetaSmall = 0.7/180.0 * PI;
@@ -257,107 +266,108 @@ void GEMPhysHandler::ProcessMoller()
   // Moller events selection
   if( gem.size() == 2) 
     { 
-	  if( (gem[0].energy+gem[1].energy) < totalEnergyDeposit) return;
-	  double temp = 0;
-	  double slope1 = 0;
-	  double slope2 = 0;
-	  //1st electron
-	  theta = TMath::Sqrt((gem[0].x)*(gem[0].x) + gem[0].y*gem[0].y) / gem[0].z;
-	  theta = TMath::ATan(theta);
-	  hhEnergyVsAngle->Fill(theta*180.0/PI, gem[0].energy);
-	  hhEnergyVsAngleMoller->Fill(theta*180.0/PI, gem[0].energy);
+      if( (gem[0].energy+gem[1].energy) < totalEnergyDeposit) return;
+      double temp = 0;
+      double slope1 = 0;
+      double slope2 = 0;
+      //1st electron
+      theta = TMath::Sqrt((gem[0].x)*(gem[0].x) + gem[0].y*gem[0].y) / gem[0].z;
+      theta = TMath::ATan(theta);
+      hhEnergyVsAngle->Fill(theta*180.0/PI, gem[0].energy);
+      hhEnergyVsAngleMoller->Fill(theta*180.0/PI, gem[0].energy);
 	  
-	  slope1 = TMath::Abs( gem[0].y/gem[0].x );
-	  slope1 = TMath::ATan(slope1); assert( slope1 < PI/2);
-	  if( (gem[0].x<0) && (gem[0].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem[0].x<0) && (gem[0].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem[0].x>0) && (gem[0].y <0)) slope1 = slope1 + 1.5*PI;
-	  //hThetaDistributionMoller->Fill(theta*180.0/PI);
-	  temp = theta;
-	  //2nd electron
-	  theta = TMath::Sqrt((gem[1].x)*(gem[1].x) + gem[1].y*gem[1].y) / gem[1].z;
-	  theta = TMath::ATan(theta);
-	  hhEnergyVsAngle->Fill(theta*180.0/PI, gem[1].energy);
-	  hhEnergyVsAngleMoller->Fill(theta*180.0/PI, gem[1].energy);
+      slope1 = TMath::Abs( gem[0].y/gem[0].x );
+      slope1 = TMath::ATan(slope1); assert( slope1 < PI/2);
+      if( (gem[0].x<0) && (gem[0].y>0) ) slope1 = slope1+ PI/2; 
+      else if( (gem[0].x<0) && (gem[0].y<0) ) slope1 = slope1+PI; 
+      else if( (gem[0].x>0) && (gem[0].y <0)) slope1 = slope1 + 1.5*PI;
+      //hThetaDistributionMoller->Fill(theta*180.0/PI);
+      temp = theta;
+      //2nd electron
+      theta = TMath::Sqrt((gem[1].x)*(gem[1].x) + gem[1].y*gem[1].y) / gem[1].z;
+      theta = TMath::ATan(theta);
+      hhEnergyVsAngle->Fill(theta*180.0/PI, gem[1].energy);
+      hhEnergyVsAngleMoller->Fill(theta*180.0/PI, gem[1].energy);
 
-	  slope2 = gem[1].y / (gem[1].x);
-	  slope2 = TMath::ATan(slope2);
-	  if( (gem[1].x<0) && (gem[1].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem[1].x<0) && (gem[1].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem[1].x>0) && (gem[1].y <0)) slope1 = slope1 + 1.5*PI;
-	  if(theta > temp) 
-	    {
-	      hThetaDistributionMollerLarge->Fill(theta*180.0/PI); 
-	      hThetaDistributionMollerSmall->Fill(temp*180.0/PI);
-	      if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
-	    }
-	  else 
-	    {
-	      hThetaDistributionMollerLarge->Fill(temp*180.0/PI); 
-	      hThetaDistributionMollerSmall->Fill(theta*180.0/PI);
-	      if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
-	    }
+      slope2 = gem[1].y / (gem[1].x);
+      slope2 = TMath::ATan(slope2);
+      if( (gem[1].x<0) && (gem[1].y>0) ) slope1 = slope1+ PI/2; 
+      else if( (gem[1].x<0) && (gem[1].y<0) ) slope1 = slope1+PI; 
+      else if( (gem[1].x>0) && (gem[1].y <0)) slope1 = slope1 + 1.5*PI;
+      if(theta > temp) 
+	{
+	  hThetaDistributionMollerLarge->Fill(theta*180.0/PI); 
+	  hThetaDistributionMollerSmall->Fill(temp*180.0/PI);
+	  if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) 
+	    hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
+	}
+      else 
+	{
+	  hThetaDistributionMollerLarge->Fill(temp*180.0/PI); 
+	  hThetaDistributionMollerSmall->Fill(theta*180.0/PI);
+	  if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) 
+	    hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
+	}
 
-	  //2d ring
-	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ) )
-	    {
-	      hhMoller2DRing->Fill(gem[0].x, gem[0].y);
-	      hhMoller2DRing->Fill(gem[1].x, gem[1].y);
-	    }
-	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ) )
-	    {
-	      hhMoller2DRing2->Fill(gem[0].x, gem[0].y);
-	      hhMoller2DRing2->Fill(gem[1].x, gem[1].y);
-	    }
+      //2d ring
+      if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge) ) )
+	{
+	  hhMoller2DRing->Fill(gem[0].x, gem[0].y);
+	  hhMoller2DRing->Fill(gem[1].x, gem[1].y);
+	}
+      if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2) ) )
+	{
+	  hhMoller2DRing2->Fill(gem[0].x, gem[0].y);
+	  hhMoller2DRing2->Fill(gem[1].x, gem[1].y);
+	}
 
-	  theta+=temp;
-	  hThetaDistributionMoller->Fill(theta*180.0/PI);
-	  hLinearDeviationMoller->Fill((slope1-slope2)*180.0/PI - 180.0);
+      theta+=temp;
+      hThetaDistributionMoller->Fill(theta*180.0/PI);
+      hLinearDeviationMoller->Fill((slope1-slope2)*180.0/PI - 180.0);
 
-	  //x, y offset
-	  //if(TMath::Abs( (slope1-slope2)*180.0/PI) < 1.0)
+      //x, y offset
+      //if(TMath::Abs( (slope1-slope2)*180.0/PI) < 1.0)
+      {
+	if(px1 != 0x270F)
 	  {
-	    if(px1 != 0x270F)
-	      {
-	        px1 = cx1;
-		py1 = cy1;
-		px2 = cx2;
-		py2 = cy2;
-		cx1 = gem[0].x;
-		cx2 = gem[1].y;
-		cy1 = gem[0].y;
-		cy2 = gem[1].y;
+	    px1 = cx1;
+	    py1 = cy1;
+	    px2 = cx2;
+	    py2 = cy2;
+	    cx1 = gem[0].x;
+	    cx2 = gem[1].y;
+	    cy1 = gem[0].y;
+	    cy2 = gem[1].y;
 
-		double a1 = py1 - py2;
-		double b1 = px2 - px1;
-		double c1 = px1 * py2 - px2 * py1;
+	    double a1 = py1 - py2;
+	    double b1 = px2 - px1;
+	    double c1 = px1 * py2 - px2 * py1;
 
-		double a2 = cy1 - cy2;
-		double b2 = cx2 - cx1;
-		double c2 = cx1 * cy2 - cx2 * cy1;
+	    double a2 = cy1 - cy2;
+	    double b2 = cx2 - cx1;
+	    double c2 = cx1 * cy2 - cx2 * cy1;
 	        
-		double D = a1*b2 - a2*b1;
+	    double D = a1*b2 - a2*b1;
 
-		if(D != 0)
-		  {
-		    double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
-		    double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
-		    hXOffsetFromMoller->Fill(xi);
-		    hYOffsetFromMoller->Fill(yi);
-		    hhMollerCenter->Fill(xi, yi);
-		  }
-
-	      }
-	    else
+	    if(D != 0)
 	      {
-	        px1 = cx1 = gem[0].x;
-		py1 = cy1 = gem[0].y;
-		px2 = cx2 = gem[1].x;
-		py2 = cy2 = gem[1].y;
-
+		double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
+		double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
+		hXOffsetFromMoller->Fill(xi);
+		hYOffsetFromMoller->Fill(yi);
+		hhMollerCenter->Fill(xi, yi);
 	      }
+
 	  }
-	} 
+	else
+	  {
+	    px1 = cx1 = gem[0].x;
+	    py1 = cy1 = gem[0].y;
+	    px2 = cx2 = gem[1].x;
+	    py2 = cy2 = gem[1].y;
+
+	  }
+      } 
     }
 }
 
@@ -556,7 +566,7 @@ void GEMPhysHandler::SavePhysResults()
   //f->Close();
 }
 
-void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<GEMClusterStruct>& gem2)
+void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<PRadGEMCluster>& gem2)
 {
   double z_gem1 = 5300; //mm
   double z_gem2 = 5260; //mm
@@ -584,12 +594,12 @@ void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<GEM
 	  theta = TMath::ATan(theta);
 
 	  //2d ring
-	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ) )
+	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge) ) )
 	    {
 	      hhMoller2DRingBeforeMatch->Fill(gem1[0].x, gem1[0].y);
 	      hhMoller2DRingBeforeMatch->Fill(gem1[1].x, gem1[1].y);
 	    }
-	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ) )
+	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2) ) )
 	    {
 	      hhMoller2DRingBeforeMatch2->Fill(gem1[0].x, gem1[0].y);
 	      hhMoller2DRingBeforeMatch2->Fill(gem1[1].x, gem1[1].y);
@@ -611,12 +621,12 @@ void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<GEM
 	  theta = TMath::ATan(theta);
 
 	  //2d ring
-	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ) )
+	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge) ) )
 	    {
 	      hhMoller2DRingBeforeMatch->Fill(gem2[0].x, gem2[0].y);
 	      hhMoller2DRingBeforeMatch->Fill(gem2[1].x, gem2[1].y);
 	    }
-	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ) )
+	  if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2) ) )
 	    {
 	      hhMoller2DRingBeforeMatch2->Fill(gem2[0].x, gem2[0].y);
 	      hhMoller2DRingBeforeMatch2->Fill(gem2[1].x, gem2[1].y);
@@ -639,12 +649,12 @@ void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<GEM
 	    theta = TMath::ATan(theta);
 
 	    //2d ring
-	    if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ))
+	    if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)))
               {
 	        hhMoller2DRingBeforeMatch->Fill(gem2[0].x, gem2[0].y);
 	        hhMoller2DRingBeforeMatch->Fill(gem1[0].x, gem1[0].y);
 	      }
-	    if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)   ))
+	    if( ( (temp>ThetaSmall2) && (temp<ThetaLarge2)) || ( (theta>ThetaSmall2)&&(theta<ThetaLarge2)))
               {
 	        hhMoller2DRingBeforeMatch2->Fill(gem2[0].x, gem2[0].y);
 	        hhMoller2DRingBeforeMatch2->Fill(gem1[0].x, gem1[0].y);

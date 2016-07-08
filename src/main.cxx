@@ -47,10 +47,6 @@ int main(int argc, char* argv[])
   else
   {
     cout<<"please specify a RUNTYPE ..."<<endl;
-    cout<<mapping->GetFECIPFromFECID(1)<<endl;
-    cout<<mapping->GetFECIPFromFECID(3)<<endl;
-    cout<<mapping->GetFECIDFromFECIP(TString("10.0.1.2"))<<endl;
-    cout<<mapping->GetFECIDFromFECIP(TString("10.0.8.2"))<<endl;
   }
   //theApp.Run(true);
   return 0;

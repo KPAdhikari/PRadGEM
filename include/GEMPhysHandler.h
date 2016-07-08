@@ -18,12 +18,16 @@
 
 #include <stdio.h>
 
+#include "PRadGEMReconstructor.h"
+
 #include "GEMHistoManager.h"
 #include "GEMConfigure.h"
 
+class PRadDataHandler;
 class PRadReconstructor;
 class PRadGEMReconstructor;
 class PRadDSTParser;
+class PRadEvioParser;
 
 class GEMPhysHandler : public GEMHistoManager
 {
@@ -35,10 +39,12 @@ public:
   int ProcessAllEvents(int evtID = -1);
   void SavePhysResults();
 
+  void Analyzer();
+
   void ProcessEp();
   void ProcessMoller();
   void CharactorizeGEM();
-  void GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct>&gem2);
+  void GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<PRadGEMCluster>&gem2);
 
 private:
   string fileList[100];
@@ -50,8 +56,11 @@ private:
   PRadDataHandler *pHandler;
   PRadEvioParser *parser;
   PRadReconstructor *reconstruct;
-  PRadGEMReconstructor *pGEMReconstructor;
-  pRadDSTParser * pDSTParser;
+  PRadGEMReconstructor *pGEMReconstruct;
+  PRadDSTParser * pDSTParser;
+
+  vector<PRadGEMCluster> *gem_cluster;
+  vector<HyCalHit> *hycal_cluster;
 
   //temp test
   TH2F * hhTimeCorrelation;
