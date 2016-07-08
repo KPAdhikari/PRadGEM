@@ -118,8 +118,12 @@ void GEMPhysHandler::Analyzer()
 
   vector<PRadGEMCluster> gem1, gem2;
   vector<PRadGEMCluster> hgem1, hgem2;
-  pGEMClusterReconstruct->GEMClusteringLocal(gem1, gem2);
-  pGEMClusterReconstruct->GEMClusteringHycal(hgem1, hgem2);
+
+  gem1 = pGEMClusterReconstruct->GEMClusteringLocal(0);
+  gem2 = pGEMClusterReconstruct->GEMClusteringLocal(1);
+
+  hgem1 = pGEMClusterReconstruct->GEMClusteringHycal(0);
+  hgem2 = pGEMClusterReconstruct->GEMClusteringHycal(1);
 
   online_hit.FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
 
