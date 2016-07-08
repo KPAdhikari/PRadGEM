@@ -10,8 +10,6 @@
 #include <cassert>
 #include <algorithm>
 
-#include <arpa/inet.h>
-
 #include <TH1F.h>
 #include <TFile.h>
 #include <TCanvas.h>
@@ -20,14 +18,12 @@
 
 #include <stdio.h>
 
-//evio
-#include "evioUtil.hxx"
-#include "evioFileChannel.hxx"
-
 #include "GEMHistoManager.h"
 #include "GEMConfigure.h"
 
 class PRadReconstructor;
+class PRadGEMReconstructor;
+class PRadDSTParser;
 
 class GEMPhysHandler : public GEMHistoManager
 {
@@ -39,53 +35,28 @@ public:
   int ProcessAllEvents(int evtID = -1);
   void SavePhysResults();
 
-  template<class T> void ProcessEp(T *hit_decoder);
-  template<class T> void ProcessMoller(T *hit_decoder);
-  template<class T> void CharactorizeGEM(T *hit_decoder);
+  void ProcessEp();
+  void ProcessMoller();
+  void CharactorizeGEM();
   void GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct>&gem2);
 
-  template<class T> void ProcessMollerAfterCorrection(T *hit_decoder);
-
-  int GEMHyCalPosMatch(int i, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit);
-  int HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit);
-
 private:
-  vector<int> vSRSSingleEventData;
-  vector<int> vSRSZeroEventData;
-  map<int, map<int, TH1F*> > mAPVRawHistos;
-  map<int, map<int, vector<int> > > mAPVRawTSs;
-  bool larggerthan(int i, int j) {return i>j;}
-
-  set<int> FECs;  // FEC ID
-
   string fileList[100];
   string filename;
   ifstream file;
 
-  int nElectron;  // tdc 126 or 127 cut, converted events number
-  int nElectron_126;
-  int nElectron_127;
-  int neff;
-  
-  int nScinEvents;
-  int nHyCalEvents;
-  // totoal number of events 
-  int nTotalEvents;
-
-  GEMRawDecoder *fRawDecoder;
   GEMConfigure config;
-  GEMPedestal *ped;
-  // chao
+
   PRadDataHandler *pHandler;
   PRadEvioParser *parser;
   PRadReconstructor *reconstruct;
+  PRadGEMReconstructor *pGEMReconstructor;
+  pRadDSTParser * pDSTParser;
 
   //temp test
   TH2F * hhTimeCorrelation;
   TH1F* hTimeDiff;
-  double timing_test;
-  vector<HyCalHit> * pHyCalHit;  
-  //vector<HyCalHit>  HyCalHit; 
+
   double totalEnergyDeposit;
   double beamEnergy;
 
@@ -112,7 +83,6 @@ private:
 
   float O_Transfer;
   float OverlapStart;
-
 };
 
 #endif

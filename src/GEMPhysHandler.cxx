@@ -240,7 +240,10 @@ void GEMPhysHandler::ProcessMoller()
   double e0 = beamEnergy; //GeV
   
   vector<PRadGEMCluster> gem1, gem2;
-  GeometryMollerRing(gem, gem2);
+  gem1 = pGEMReconstruct->GEMClusteringHyCal(0);
+  gem2 = pGEMReconstruct->GEMClusteringHyCal(0);
+
+  GeometryMollerRing(gem1, gem2);
 
   vector<PRadGEMCluster> gem;
   pGEMReconstruct->CoarseGEMReconstruct(gem);
@@ -566,8 +569,6 @@ void GEMPhysHandler::GeometryMollerRing(vector<PRadGEMCluster> &gem1, vector<GEM
   float ThetaLarge2 = 1.1/180.0 * PI;
 
   // Moller events selection
-  //     require them in different quadrants, very rough
- 
   if( (gem1.size() == 2)&&(gem2.size() == 0)) 
     { 
       if(  ( (gem1[0].x)*(gem1[1].x) < 0 ) && ( gem1[0].y*gem1[1].y < 0 ) ) 
