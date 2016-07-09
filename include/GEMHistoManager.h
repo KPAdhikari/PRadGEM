@@ -12,7 +12,9 @@
 
 #include <cassert>
 
-#include "PRDMapping.h"
+class PRadGEMSystem;
+class PRadDataHandler;
+class PRDMapping;
 
 class GEMHistoManager
 {
@@ -23,6 +25,7 @@ public:
   virtual void BookHistos();
 
 protected:
+  PRDMapping * fMapping;
 
 public:
   int nbDetector;
@@ -116,7 +119,6 @@ public:
   TH2F * hhYDiffMatchVsEnergy;
   TH1F * hNbPointsMatch;
  
-  PRDMapping * fMapping;
 };
 
 #endif

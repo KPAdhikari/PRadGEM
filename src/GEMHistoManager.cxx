@@ -1,11 +1,14 @@
 #include "GEMHistoManager.h"
+#include "PRDMapping.h"
 
 using namespace std;
 
 GEMHistoManager::GEMHistoManager()
 {
   fMapping = PRDMapping::GetInstance();
-  nbDetector = fMapping->GetNbOfDetectors(); 
+  fMapping->LoadMapping("/home/xbai/w/pRad/source/PRadEventViewer/config/gem_map.cfg");
+  nbDetector = fMapping->GetNbOfDetectors();
+  nbDetector = 2;
 }
 
 GEMHistoManager::~GEMHistoManager()

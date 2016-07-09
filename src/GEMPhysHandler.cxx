@@ -19,8 +19,10 @@ GEMPhysHandler::GEMPhysHandler()
 
   pGEMReconstruct = new PRadGEMReconstructor(pHandler);
 
-  totalEnergyDeposit = 1800; //MeV
-  beamEnergy = 2.147;//GeV
+  //totalEnergyDeposit = 1800; //MeV
+  //beamEnergy = 2.147;//GeV
+  totalEnergyDeposit = 100; //MeV
+  beamEnergy = 1.1;//GeV
 
   //compute intersection points
   px1 = 0x270F;py1=0x270F;
@@ -61,9 +63,12 @@ void GEMPhysHandler::ProcessAllFiles()
   for(int i=0;i<nFile;i++)
     {
       filename = config.fileList[i];
-      ProcessAllEvents(-1);
-      //ProcessAllEvents(40000);
+      //ProcessAllEvents(-1);
     }
+ 
+  //temporary solution 
+  filename = "./prad_001287.dst";
+  ProcessAllEvents( -1 );
 
   // Save Histos
   SavePhysResults();
@@ -75,8 +80,10 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
   int entry = 0;
 
   PRadBenchMark timer;
+  
+  pDSTParser->OpenInput(filename.c_str());
 
-  while(pDSTParser->Read() && entry < 30000)
+  while(pDSTParser->Read() && entry < 300000)
     {
       if( pDSTParser->EventType() == PRad_DST_Event) 
 	{
@@ -390,7 +397,7 @@ void GEMPhysHandler::CharactorizeGEM()
   nbClusterPerEvent += gem2.size();
 
   if(gem1.size() > 0)
-    {
+    { 
       for(int i=0;i<gem1.size();i++)
 	{
 	  hhClusterDist[0] -> Fill( gem1[i].x, gem1[i].y);
