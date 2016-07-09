@@ -56,6 +56,11 @@ GEMOnlineHitDecoder::~GEMOnlineHitDecoder()
   {
     delete (it->second);
   }
+  it = fListOfHitsClean.begin();
+  for(;it!=fListOfHitsClean.end();++it)
+  {
+    delete(it->second);
+  }
 
   //clear clusters
   if( fListOfClustersCleanFromPlane.size() > 0)
@@ -288,7 +293,6 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
       Float_t avgdata = -rawDataZS[chNo] ;
 
       // PERFORM ZERO SUPPRESSION
-      
       if( fZeroSupCut > 0 ) 
 	{
 	  if( avgdata > (fZeroSupCut * fPedestalNoises[chNo]) ) 
@@ -301,6 +305,7 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
 	      fListOfHitsClean[hitID]->AddTimeBinADCs(timebin, data) ;
 	    }
 	}
+     
       // NO ZERO SUPPRESSION
       if( fSaveRawHit > 0 ) 
 	{

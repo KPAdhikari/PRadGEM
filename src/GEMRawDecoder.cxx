@@ -94,6 +94,8 @@ GEMRawDecoder::~GEMRawDecoder()
 
 void GEMRawDecoder::Decode()
 {
+  if(fBuf <= 0) return;
+
   unsigned int word32bit;
   unsigned int word16bit1;
   unsigned int word16bit2;

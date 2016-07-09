@@ -52,7 +52,8 @@ void GEMHit::AddTimeBinADCs(Int_t timebin, Float_t charges) {
   assert(timebin>=0);
   fTimeBinADCs[timebin] = charges;
   if(fZeroSupCut > 0 ) {
-    if (charges >  fHitADCs) fPeakADCs = charges ;
+    //if (charges >  fHitADCs) fPeakADCs = charges ;
+    if (charges >  fPeakADCs) fPeakADCs = charges ; // fix xb
     fIntegratedADCs += charges ;
     if (fIsHitMaxOrTotalADCs == "integratedADCs") fHitADCs = fIntegratedADCs ;
     else                                          fHitADCs =  fPeakADCs;

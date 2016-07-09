@@ -14,7 +14,7 @@ using namespace evio;
 
 // GEM Efficiency Macros
 #define TDC_CHECK_EFFICIENCY
-//#undef  TDC_CHECK_EFFICIENCY
+#undef  TDC_CHECK_EFFICIENCY
 
 #define ZEROSUPPRESSION
 #undef ZEROSUPPRESSION
@@ -160,10 +160,10 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
       {
         ntrigger +=1.0;
 	nTotalEvents += 1.0;
+
         pHandler->Decode(chan.getBuffer());
 	pHyCalHit =& reconstruct->CoarseHyCalReconstruct(pHandler->GetEventCount() - 1); 
-        //pHyCalHit = &HyCalHit;
-        //cout<<pHyCalHit->size()<<endl;
+        
         hHyCalClusterMul->Fill(pHyCalHit->size());
        	for(int i=0;i<pHyCalHit->size(); i++)
 	  {
@@ -413,7 +413,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 #ifdef ZEROSUPPRESSION
           if(vSRSZeroEventData.size() == 0 ) continue;
 #endif
-	  int size = vSRSSingleEventData.size();
+          int size = vSRSSingleEventData.size();
 	  uint32_t buf[size];
 	  for(int i=0;i<size;i++)
 	    {
@@ -486,11 +486,12 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	    }
 
 	  //nb of clusters per event
+	  
 	  CharactorizeGEM(&online_hit);
 	  ProcessEp(&online_hit);
 	  ProcessMoller(&online_hit);
           ProcessMollerAfterCorrection(&online_hit);
-
+          
 	  if(hgem1.size() > 0)
 	    {
 	      for(int i=0;i<hgem1.size();i++)
