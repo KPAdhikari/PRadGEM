@@ -54,18 +54,21 @@ public:
   template<class T> void ProcessEp(T *hit_decoder);
   template<class T> void ProcessMoller(T *hit_decoder);
   template<class T> void CharactorizeGEM(T *hit_decoder);
+  template<class T> void CharactorizeHyCal(T *hit_decoder);
+  template<class T> void ComputeGEMOffsets(T *hit_decoder);
+  template<class T> void GetGEMClusterMapHyCalCoor(T *hit_decoder);
+
   void GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct>&gem2);
 
   template<class T> void ProcessMollerAfterCorrection(T *hit_decoder);
 
   int GEMHyCalPosMatch(int i, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit);
   int HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit);
+  void GetCutFlags(int nth_event, vector<uint32_t> * vec, int & scin_flag, int & hycal_flag);
 
 private:
   vector<int> vSRSSingleEventData;
   vector<int> vSRSZeroEventData;
-  map<int, map<int, TH1F*> > mAPVRawHistos;
-  map<int, map<int, vector<int> > > mAPVRawTSs;
   bool larggerthan(int i, int j) {return i>j;}
 
   set<int> FECs;  // FEC ID

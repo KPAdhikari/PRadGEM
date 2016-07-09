@@ -19,9 +19,6 @@ using namespace evio;
 #define ZEROSUPPRESSION
 #undef ZEROSUPPRESSION
 
-//#define HyCalTimingCut
-//#undef HyCalTimingCut
-
 #define CLEANUP
 //#undef CLEANUP
 
@@ -31,17 +28,23 @@ GEMPhysHandler::GEMPhysHandler()
 {
   fRawDecoder = 0;
 
+  nScinEvents = 0;
+  nHyCalEvents = 0;
+
+  // nElectron = nScinEvents && nHyCalEvents 
   nElectron = 0;
+
+  // to be implemented...
   nElectron_126=0;
   nElectron_127=0;
 
-  nScinEvents = 0;
-  nHyCalEvents = 0;
-  nTotalEvents = 0;  // to get how many events in total, this to compute photon conversion probability
+  // to get how many events in total, 
+  // this to compute photon conversion probability
+  nTotalEvents = 0;  
+ 
+  // # of events in gem, means gem events
   neff = 0;
 
-  mAPVRawHistos.clear();
-  mAPVRawTSs.clear();
   vSRSSingleEventData.clear();
   vSRSZeroEventData.clear();
   FECs.clear();
@@ -96,8 +99,6 @@ GEMPhysHandler::GEMPhysHandler()
 
 GEMPhysHandler::~GEMPhysHandler()
 {
-  mAPVRawHistos.clear();
-  mAPVRawTSs.clear();
   ped->Delete();
 }
 
@@ -105,23 +106,28 @@ void GEMPhysHandler::ProcessAllFiles()
 {
   //GEMConfigure config;
   int nFile = config.nFile;
-  cout<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "<<nFile<<endl;
+  cout<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "
+      <<nFile
+      <<endl;
   for(int i=0;i<nFile;i++)
     {
       cout<<config.fileList[i]<<endl;
     }
-  cout<<"TDC Cut: "<<config.TDC_Channel<<", Start TIME:  "<<config.TDC_Start<<", END TIME:  "<<config.TDC_End<<", HyCal Energy Cut:  "<<config.Hycal_Energy<<endl;
+  cout<<"TDC Cut: "<<config.TDC_Channel
+      <<", Start TIME:  "<<config.TDC_Start
+      <<", END TIME:  "<<config.TDC_End
+      <<", HyCal Energy Cut:  "<<config.Hycal_Energy
+      <<endl;
 
   // to compute photon conversion rate
   nTotalEvents = 0;
   neff = 0;
   nElectron = 0;
 
-
   if(config.fileList[0].find("evio.0")!= string::npos)
     {
       pHandler->InitializeByData(config.fileList[0].c_str());
-    };
+    }
 
   for(int i=1;i<nFile;i++)
     {
@@ -138,12 +144,13 @@ void GEMPhysHandler::ProcessAllFiles()
   double eff_real = (double)neff/nElectron;
   cout<<"GEM Hit: "<<neff<<endl;
   cout<<"TDC:  "<<nElectron<<endl;
-  cout<<"Total Number of Events in "<<nFile<<" Files: "<<nTotalEvents<<endl;
+  cout<<"Total Number of Events in "<<nFile
+      <<" Files: "<<nTotalEvents
+      <<endl;
   cout<<"------------------------------------"<<endl;
   cout<<"Overall Detector Efficiency: "<<eff_real<<endl;
   cout<<"------------------------------------"<<endl;
 #endif
-
 }
 
 int GEMPhysHandler::ProcessAllEvents(int evtID )
@@ -153,6 +160,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
   double ntrigger = 0.0; // for detector efficiency
 
   PRadBenchMark timer;
+
   try{
     evioFileChannel chan(filename.c_str(), "r");
     chan.open();
@@ -170,8 +178,12 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	    hhHyCalClusterMap->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
 
 	    hHyCalEnergy->Fill(pHyCalHit->at(i).E);
-	    if(pHyCalHit->size() == 1) hHyCalEnergyEp->Fill(pHyCalHit->at(i).E);
-	    if(pHyCalHit->size() == 2) {hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);}
+	    if(pHyCalHit->size() == 1) 
+	      hHyCalEnergyEp->Fill(pHyCalHit->at(i).E);
+	    if(pHyCalHit->size() == 2) 
+	      {
+	        hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);
+	      }
 	  }
        
 	vSRSSingleEventData.clear();
@@ -197,145 +209,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
             if( (*iter)->tag == 57633 ) // ti bank
               {
                 vector<uint32_t> *ti_vec = (*iter)->getVector<uint32_t>();
-                int ti_size = ti_vec->size();
-		if(config.UseHyCalTimingCut == 1)
-		  {
-		    HyCalTimingCut = 0;
-		    //HyCal timing cut
-		    //G22  time slot 97  ; G1:112; G2:100; G6:113
-		    //G21  time slot 115 ; G10:67; W12:92
-		    //W31  time slot 116 ; W7:82 ; W8: 76
-		    /***************************************************
-		     * HyCal TDC Group 
-		     * G1  112  :   G2  100 :  G3  109 :  G4  64
-		     * G5  69   :   G6  113 :  G25 65  :  W6  66
-		     * G10 67   :   W11  68 :  W18 70  :  W15 72
-		     * W9  73   :   W20  74 :  W33 75  :  W8  76
-		     * W27 77   :   W21  78 :   W2 80  :  W26 81
-		     * W7  82   :   W1   83 :   W3 84  :  W14 85
-		     * W24 88   :   G24  89 :   G20 90 :  G15 91
-		     * W12 92   :   W36  93 :   W30 94 :  G11 96
-		     * G22 97   :   W25  98 :   W13 99 :  G2  100
-		     * W32 101  :   W28  104:   W4  105:  W10 106
-		     * W16 107  :   W22  108:   G3  109:  G23 110
-		     * G16 114  :  G21   115:   W31 116:  W19 117
-		     * W23 120  :   W34  121:   W17 122:  W35 123
-		     * W29 124  :    W5  125: Scin S1 126 : Scin S2 127
-		     * ************************************************/
-		    for(int i=0;i<ti_size;i++)
-		      {
-			if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
-			int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
-			//if( (tdc_ch == 121)||(tdc_ch == 75)||(tdc_ch == 77) ||( tdc_ch == 104))
-			//if( (tdc_ch == 67)||(tdc_ch == 92) )
-			if( (tdc_ch == 123))
-			  {
-			    double tdc_value = (ti_vec->at(i)) & 0x7ffff; 
-			    if(ntrigger<100) cout<<tdc_value<<endl;
-			    if( (tdc_value>config.Hycal_Timing_Cut_Start) && (tdc_value<config.Hycal_Timing_Cut_End) ) 
-			      {
-				HyCalTimingCut = 1;  
-				timing_test = tdc_value;
-				break;
-			      }
-			  }
-		      }
-		  }
-
-		// Scintillator Timing Cut ...
-		// time slot 126
-		// time slot 127
-                if(config.UseScinTDCCut == 1)
-		  {
-		    convert = 0;
-		    int TF126 = 0;
-		    int TF127 = 0;
-		    for(int i=0;i<ti_size;i++)
-		      {
-			if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
-			int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
-		   
-			//printf("0x%x \n", ti_vec->at(i));
-			if(config.TDC_Channel == "126")
-			  {
-			    //cout<<" 126 cut..."<<endl;
-			    if( (tdc_ch == 126)) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				//cout<<config.TDC_Start<<"  "<<config.TDC_End<<endl;
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    //hhTimeCorrelation->Fill(timing_test, tdc_value);
-				    //hTimeDiff->Fill(tdc_value - timing_test);
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-
-			if(config.TDC_Channel == "127")
-			  {
-			    //cout<<" 127 cut ..."<<endl;
-			    if( (tdc_ch == 127)) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-
-			if(config.TDC_Channel == "126and127")
-			  {
-			    //cout<< " 126 and 127 cut ..."<<endl;
-			    if( (tdc_ch == 126) ) TF126 = 1;
-			    if( (tdc_ch == 127) ) TF127 = 1;
-			    if( (TF126 == 1) && (TF127 == 1) ) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    // cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    //hhTimeCorrelation->Fill(timing_test, tdc_value);
-				    //hTimeDiff->Fill(tdc_value - timing_test);
-
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-
-			if(config.TDC_Channel == "126or127")
-			  {
-			    //cout<< " 126 or 127 cut ..."<<endl;
-			    if( (tdc_ch == 126) || (tdc_ch == 127) ) 
-			      { 
-				double tdc_value = (ti_vec->at(i)) & 0x7ffff;
-				//if( (tdc_value>7600) && (tdc_value<7800) )
-				//if( (tdc_value>7000) && (tdc_value<10000) )
-				if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
-				  {
-				    //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
-				    hhTimeCorrelation->Fill(timing_test, tdc_value);
-				    hTimeDiff->Fill(tdc_value - timing_test);
-
-				    convert = 1; 
-				    break;
-				  }
-			      }
-			  }
-		      }
-		  }
+                GetCutFlags(ntrigger, ti_vec, convert, HyCalTimingCut);
               }
 	  }
 
@@ -346,17 +220,21 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	      <<endl;
 
 	if( HyCalTimingCut == 1)
-	  nHyCalEvents ++ ;
+	    nHyCalEvents ++ ;
 	if( convert == 1)
-	  nScinEvents ++ ;
+	    nScinEvents ++ ;
 
 	if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config.Hycal_Energy) ) 
 	  { 
 	    //cout<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
-	    if(ntrigger<10) cout<<"GEMPhys::ProcessEvents: Energy HyCal: "<<photon_energy<<endl;
+	    if(ntrigger<10) 
+	      cout<<"GEMPhys::ProcessEvents: Energy HyCal: "
+		  <<photon_energy
+		  <<endl;
 	    nElectron+=1;
 	  }
-	else continue;
+	else 
+	  continue;
 #endif
 
 	for(iter=fecEventList->begin(); iter!=fecEventList->end(); ++iter)
@@ -400,18 +278,27 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 
 	  }
 
-	{	
 	  ++entry;
-	  if( (evtID != -1) && (entry > evtID) ) break; // process evtID many events
-	  if(ntrigger<10) cout<<"GEMPhysHandelr::entry: "<<entry<< " nElectron: " << nElectron << " nScinEvents: "<<nScinEvents<<endl;
-	  if(ntrigger<10) cout<<"SRS Event Size [uint_32]:"<<vSRSSingleEventData.size()<<endl;
+	  if( (evtID != -1) && (entry > evtID) ) 
+	    break; // process evtID many events
+
+	  if(ntrigger<10) 
+	    cout<<"GEMPhysHandelr::entry: "<<entry
+		<< " nElectron: " << nElectron 
+		<< " nScinEvents: "<<nScinEvents
+		<<endl;
+	  if(ntrigger<10) 
+	    cout<<"SRS Event Size [uint_32]:"<<vSRSSingleEventData.size()
+		<<endl;
 
 #ifndef ZEROSUPPRESSION
-	  if (vSRSSingleEventData.size() == 0 ) continue; // if no srs event found, go to next event
+	  if (vSRSSingleEventData.size() == 0 ) 
+	    continue; 
 #endif
 
 #ifdef ZEROSUPPRESSION
-          if(vSRSZeroEventData.size() == 0 ) continue;
+          if(vSRSZeroEventData.size() == 0 ) 
+	    continue;
 #endif
           int size = vSRSSingleEventData.size();
 	  uint32_t buf[size];
@@ -427,108 +314,22 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	      buf_zero[j] = vSRSZeroEventData[j];
 	    }
 
-	  // do the work
 #ifndef ZEROSUPPRESSION
 	  GEMOnlineHitDecoder online_hit(buf, size, ped);
 #endif
 #ifdef ZEROSUPPRESSION
           GEMZeroHitDecoder online_hit(buf_zero, zero_size, ped);
 #endif
+
 	  // Fill histos
-	  vector<GEMClusterStruct> gem1, gem2;
-	  vector<GEMClusterStruct> hgem1, hgem2;
-	  online_hit.GetClusterGEM(gem1, gem2);
-	  online_hit.GetClusterHyCalCutMode(hgem1, hgem2);
-          online_hit.FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
-
-	  //general cut
-	  //if( (gem1.size()>=5 ) || (gem2.size()>=5) ) continue;
-	  //if( energy < 900  || energy > 1300) continue;
-
-	  // offset between GEMs
-	  // [1]: refer to "GEMZeroHitDecoder.cxx"
-	  /*
-	   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	   * overlapping area: 44mm
-	   * x side length: 550.4
-	   * overlapping area starting with: 550.4/2 -44 = 231.2
-	   *
-	   * origin trasfer to beam hole center:
-	   *    transfered distance: 550.4/2 - 44/2 = 253.2
-	   *    GEM1 coordinate transfer: x1 = x1 - 253.2; y1 = y1
-	   *    GEM2 coordinate transfer: x2 = 253.2 - x2; y2 = -y2
-	   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	   */
-
-          // compute offsets between two gem chambers
-	  if( (gem1.size()==1) && (gem2.size()==1) )
-	    {
-	      if( (gem1[0].x > OverlapStart) && (gem2[0].x > OverlapStart) )
-		{
-		  {
-		    //z offset correction
-		    double z_gem1 = 5300; //mm
-		    double z_gem2 = 5260; //mm
-		    double x1prime = (gem1[0].x-O_Transfer)*z_gem2/z_gem1;
-		    double y1prime = gem1[0].y*z_gem2/z_gem1;
-		    hYOffsetGEM->Fill( ( y1prime ) - ( -gem2[0].y) );
-		    hXOffsetGEM->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
-
-		    //after correction
-		    double xoffset = -0.3618;// x1 - x2
-		    double yoffset = 0.1792; // y1 - y2
-		    x1prime = (gem1[0].x - xoffset -O_Transfer)*z_gem2/z_gem1;
-		    y1prime = (gem1[0].y - yoffset )*z_gem2/z_gem1;
-		    hYOffsetGEMAfterCorrection->Fill( ( y1prime ) - ( -gem2[0].y) );
-		    hXOffsetGEMAfterCorrection->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
-		  }
-		}
-	    }
-
-	  //nb of clusters per event
+	  ComputeGEMOffsets(&online_hit);
 	  
 	  CharactorizeGEM(&online_hit);
 	  ProcessEp(&online_hit);
 	  ProcessMoller(&online_hit);
           ProcessMollerAfterCorrection(&online_hit);
-          
-	  if(hgem1.size() > 0)
-	    {
-	      for(int i=0;i<hgem1.size();i++)
-		{
-		  hhGEMClusterMap->Fill(hgem1[i].x, hgem1[i].y);
-		}
-	      if( hgem1.size() == 1)
-		{
-		  hhGEMClusterMapSingleCluster->Fill(hgem1[0].x, hgem1[0].y);
-		}
-	      if( hgem1.size() <= 2)
-		{
-		  hhGEMClusterMapMaxTwoCluster->Fill(hgem1[0].x, hgem1[0].y);
-		}
-	    }
-	  if(hgem2.size() > 0)
-	    {
-	      for(int i=0;i<hgem2.size();i++)
-		{
-		  hhGEMClusterMap->Fill(hgem2[i].x,hgem2[i].y);
-		}
-	      if( hgem2.size() == 1)
-		{
-		  hhGEMClusterMapSingleCluster->Fill(hgem2[0].x, hgem2[0].y);
-		}
-	      if( hgem2.size() <= 2)
-		{
-		  hhGEMClusterMapMaxTwoCluster->Fill(hgem2[0].x, hgem2[0].y);
-		}
-	    }
 
-	  // Calculate Detector Efficiency
-	  if( (gem1.size()>0) || (gem2.size()>0) )
-	    {
-	      neff +=1.0;
-	    }
-	}
+	  GetGEMClusterMapHyCalCoor(&online_hit);
       }
 
     chan.close();
@@ -566,6 +367,151 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 #endif
 
   return entry;
+}
+
+void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int & convert, int & HyCalTimingCut)
+{
+  int ti_size = ti_vec->size();
+
+  if(config.UseHyCalTimingCut == 1)
+    {
+      HyCalTimingCut = 0;
+      //HyCal timing cut
+      //G22  time slot 97  ; G1:112; G2:100; G6:113
+      //G21  time slot 115 ; G10:67; W12:92
+      //W31  time slot 116 ; W7:82 ; W8: 76
+      /***************************************************
+       * HyCal TDC Group 
+       * G1  112  :   G2  100 :  G3  109 :  G4  64
+       * G5  69   :   G6  113 :  G25 65  :  W6  66
+       * G10 67   :   W11  68 :  W18 70  :  W15 72
+       * W9  73   :   W20  74 :  W33 75  :  W8  76
+       * W27 77   :   W21  78 :   W2 80  :  W26 81
+       * W7  82   :   W1   83 :   W3 84  :  W14 85
+       * W24 88   :   G24  89 :   G20 90 :  G15 91
+       * W12 92   :   W36  93 :   W30 94 :  G11 96
+       * G22 97   :   W25  98 :   W13 99 :  G2  100
+       * W32 101  :   W28  104:   W4  105:  W10 106
+       * W16 107  :   W22  108:   G3  109:  G23 110
+       * G16 114  :  G21   115:   W31 116:  W19 117
+       * W23 120  :   W34  121:   W17 122:  W35 123
+       * W29 124  :    W5  125: Scin S1 126 : Scin S2 127
+       * ************************************************/
+      for(int i=0;i<ti_size;i++)
+	{
+	  if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
+	  int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
+	  //if( (tdc_ch == 121)||(tdc_ch == 75)||(tdc_ch == 77) ||( tdc_ch == 104))
+	  //if( (tdc_ch == 67)||(tdc_ch == 92) )
+	  if( (tdc_ch == 123))
+	    {
+	      double tdc_value = (ti_vec->at(i)) & 0x7ffff; 
+	      if(nth_event<100) cout<<tdc_value<<endl;
+	      if( (tdc_value>config.Hycal_Timing_Cut_Start) && (tdc_value<config.Hycal_Timing_Cut_End) ) 
+		{
+		  HyCalTimingCut = 1;  
+		  timing_test = tdc_value;
+		  break;
+		}
+	    }
+	}
+    }
+
+  // Scintillator Timing Cut ...
+  // time slot 126
+  // time slot 127
+  if(config.UseScinTDCCut == 1)
+    {
+      convert = 0;
+      int TF126 = 0;
+      int TF127 = 0;
+      for(int i=0;i<ti_size;i++)
+	{
+	  if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
+	  int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
+		   
+	  //printf("0x%x \n", ti_vec->at(i));
+	  if(config.TDC_Channel == "126")
+	    {
+	      //cout<<" 126 cut..."<<endl;
+	      if( (tdc_ch == 126)) 
+		{ 
+		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
+		  //if( (tdc_value>7600) && (tdc_value<7800) )
+		  //if( (tdc_value>7000) && (tdc_value<10000) )
+		  //cout<<config.TDC_Start<<"  "<<config.TDC_End<<endl;
+		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    {
+		      //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      //hhTimeCorrelation->Fill(timing_test, tdc_value);
+		      //hTimeDiff->Fill(tdc_value - timing_test);
+		      convert = 1; 
+		      break;
+		    }
+		}
+	    }
+
+	  if(config.TDC_Channel == "127")
+	    {
+	      //cout<<" 127 cut ..."<<endl;
+	      if( (tdc_ch == 127)) 
+		{ 
+		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
+		  //if( (tdc_value>7600) && (tdc_value<7800) )
+		  //if( (tdc_value>7000) && (tdc_value<10000) )
+		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    {
+		      //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      convert = 1; 
+		      break;
+		    }
+		}
+	    }
+
+	  if(config.TDC_Channel == "126and127")
+	    {
+	      //cout<< " 126 and 127 cut ..."<<endl;
+	      if( (tdc_ch == 126) ) TF126 = 1;
+	      if( (tdc_ch == 127) ) TF127 = 1;
+	      if( (TF126 == 1) && (TF127 == 1) ) 
+		{ 
+		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
+		  //if( (tdc_value>7600) && (tdc_value<7800) )
+		  //if( (tdc_value>7000) && (tdc_value<10000) )
+		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    {
+		      // cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      //hhTimeCorrelation->Fill(timing_test, tdc_value);
+		      //hTimeDiff->Fill(tdc_value - timing_test);
+
+		      convert = 1; 
+		      break;
+		    }
+		}
+	    }
+
+	  if(config.TDC_Channel == "126or127")
+	    {
+	      //cout<< " 126 or 127 cut ..."<<endl;
+	      if( (tdc_ch == 126) || (tdc_ch == 127) ) 
+		{ 
+		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
+		  //if( (tdc_value>7600) && (tdc_value<7800) )
+		  //if( (tdc_value>7000) && (tdc_value<10000) )
+		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    {
+		      //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      hhTimeCorrelation->Fill(timing_test, tdc_value);
+		      hTimeDiff->Fill(tdc_value - timing_test);
+
+		      convert = 1; 
+		      break;
+		    }
+		}
+	    }
+	}
+    }
+
 }
 
 template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
@@ -611,11 +557,21 @@ template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
       q_square = top/bottom;
       hQSquareEp->Fill(q_square);
       hhQSquareScattAngleEp -> Fill(theta_d, q_square);
-      if( (theta_d > 0.7) && (theta_d<0.8) ) hQSquareEp1->Fill(q_square);
-      if( (theta_d > 1.0) && (theta_d<1.1) ) hQSquareEp2->Fill(q_square);
-      if( (theta_d > 1.5) && (theta_d<1.6) ) hQSquareEp3->Fill(q_square);
-      if( (theta_d > 2.0) && (theta_d<2.1) ) hQSquareEp4->Fill(q_square);
-      if(theta_d > 2.2) hQSquareEp5->Fill(q_square);
+
+      if( (theta_d > 0.7) && (theta_d<0.8) ) 
+          hQSquareEp1->Fill(q_square);
+
+      if( (theta_d > 1.0) && (theta_d<1.1) ) 
+          hQSquareEp2->Fill(q_square);
+
+      if( (theta_d > 1.5) && (theta_d<1.6) ) 
+          hQSquareEp3->Fill(q_square);
+
+      if( (theta_d > 2.0) && (theta_d<2.1) ) 
+          hQSquareEp4->Fill(q_square);
+
+      if(theta_d > 2.2) 
+          hQSquareEp5->Fill(q_square);
 
     }
   else if( (gem2.size() == 1)&&(gem1.size() == 0))
@@ -639,11 +595,21 @@ template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
       q_square = top/bottom;
       hQSquareEp->Fill(q_square); 
       hhQSquareScattAngleEp -> Fill(theta_d, q_square);
-      if((theta_d > 0.7) && (theta_d<0.8) ) hQSquareEp1->Fill(q_square);
-      if((theta_d > 1.0)&& (theta_d<1.1) ) hQSquareEp2->Fill(q_square);
-      if((theta_d > 1.5)&& (theta_d<1.6) ) hQSquareEp3->Fill(q_square);
-      if((theta_d > 2.0)&& (theta_d<2.1) ) hQSquareEp4->Fill(q_square);
-      if(theta_d > 2.2) hQSquareEp5->Fill(q_square);
+
+      if((theta_d > 0.7) && (theta_d<0.8) ) 
+          hQSquareEp1->Fill(q_square);
+
+      if((theta_d > 1.0)&& (theta_d<1.1) ) 
+          hQSquareEp2->Fill(q_square);
+
+      if((theta_d > 1.5)&& (theta_d<1.6) ) 
+          hQSquareEp3->Fill(q_square);
+
+      if((theta_d > 2.0)&& (theta_d<2.1) ) 
+          hQSquareEp4->Fill(q_square);
+
+      if(theta_d > 2.2) 
+          hQSquareEp5->Fill(q_square);
 
     }
   else if ( (gem2.size() == 1)&&(gem1.size() == 1) )
@@ -729,9 +695,12 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 	  
 	  slope1 = TMath::Abs( gem1[0].y/gem1[0].x );
 	  slope1 = TMath::ATan(slope1); assert( slope1 < PI/2);
-	  if( (gem1[0].x<0) && (gem1[0].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem1[0].x<0) && (gem1[0].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem1[0].x>0) && (gem1[0].y <0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem1[0].x<0) && (gem1[0].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem1[0].x<0) && (gem1[0].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem1[0].x>0) && (gem1[0].y <0)) 
+	      slope1 = slope1 + 1.5*PI;
 	  //hThetaDistributionMoller->Fill(theta*180.0/PI);
 	  temp = theta;
 	  //2nd electron
@@ -742,20 +711,25 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 
 	  slope2 = gem1[1].y / (gem1[1].x);
 	  slope2 = TMath::ATan(slope2);
-	  if( (gem1[1].x<0) && (gem1[1].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem1[1].x<0) && (gem1[1].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem1[1].x>0) && (gem1[1].y <0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem1[1].x<0) && (gem1[1].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem1[1].x<0) && (gem1[1].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem1[1].x>0) && (gem1[1].y <0)) 
+	      slope1 = slope1 + 1.5*PI;
 	  if(theta > temp) 
 	    {
 	      hThetaDistributionMollerLarge->Fill(theta*180.0/PI); 
 	      hThetaDistributionMollerSmall->Fill(temp*180.0/PI);
-	      if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
+	      if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) 
+	          hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
 	    }
 	  else 
 	    {
 	      hThetaDistributionMollerLarge->Fill(temp*180.0/PI); 
 	      hThetaDistributionMollerSmall->Fill(theta*180.0/PI);
-	      if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
+	      if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) 
+	          hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
 	    }
 
 	  //2d ring
@@ -835,9 +809,12 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 
           slope1 = TMath::Abs( gem2[0].y/gem2[0].x );
 	  slope1 = TMath::ATan(slope1); assert( slope1 < PI/2);
-	  if( (gem2[0].x<0) && (gem2[0].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem2[0].x<0) && (gem2[0].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem2[0].x>0) && (gem2[0].y <0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem2[0].x<0) && (gem2[0].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem2[0].x<0) && (gem2[0].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem2[0].x>0) && (gem2[0].y <0)) 
+	      slope1 = slope1 + 1.5*PI;
 	  //hThetaDistributionMoller->Fill(theta*180.0/PI);
 	  temp = theta;
 	  //2nd electron
@@ -848,20 +825,25 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 
 	  slope2 = gem2[1].y / (gem2[1].x);
 	  slope2 = TMath::ATan(slope2);
-	  if( (gem2[1].x<0) && (gem2[1].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem2[1].x<0) && (gem2[1].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem2[1].x>0) && (gem2[1].y <0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem2[1].x<0) && (gem2[1].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem2[1].x<0) && (gem2[1].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem2[1].x>0) && (gem2[1].y <0)) 
+	      slope1 = slope1 + 1.5*PI;
 	  if(theta > temp) 
 	    {
 	      hThetaDistributionMollerLarge->Fill(theta*180.0/PI); 
 	      hThetaDistributionMollerSmall->Fill(temp*180.0/PI);
-	      if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
+	      if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) 
+	          hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
 	    }
 	  else 
 	    {
 	      hThetaDistributionMollerLarge->Fill(temp*180.0/PI); 
 	      hThetaDistributionMollerSmall->Fill(theta*180.0/PI);
-	      if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
+	      if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) 
+	          hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
 	    }
 	  //2d ring
 	  if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ) )
@@ -965,13 +947,15 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 	      {
 		hThetaDistributionMollerLarge->Fill(theta*180.0/PI); 
 		hThetaDistributionMollerSmall->Fill(temp*180.0/PI);
-		if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
+		if( ((temp*180.0/PI)>0.52) && ((temp*180.0/PI)<0.62) ) 
+		    hThetaDistributionMollerSlice->Fill( theta*180.0/PI);
 	      }
 	    else 
 	      {
 		hThetaDistributionMollerLarge->Fill(temp*180.0/PI); 
 		hThetaDistributionMollerSmall->Fill(theta*180.0/PI);
-		if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
+		if( ((theta*180.0/PI)>0.54) && ((theta*180.0/PI)<0.56) ) 
+		    hThetaDistributionMollerSlice->Fill( temp*180.0/PI);
 	      }
 	    //2d ring
 	    if( ( (temp>ThetaSmall) && (temp<ThetaLarge)) || ( (theta>ThetaSmall)&&(theta<ThetaLarge)   ))
@@ -1155,9 +1139,12 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
 	  slope2 = gem1[1].y / (gem1[1].x);
 	  slope2 = TMath::ATan(slope2);
-	  if( (gem1[1].x<0) && (gem1[1].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem1[1].x<0) && (gem1[1].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem1[1].x>0) && (gem1[1].y<0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem1[1].x<0) && (gem1[1].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem1[1].x<0) && (gem1[1].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem1[1].x>0) && (gem1[1].y<0)) 
+	      slope1 = slope1 + 1.5*PI;
 
 	  theta+=temp;
 	  hThetaDistributionMollerBeamLineCorrection->Fill(theta*180.0/PI);
@@ -1226,9 +1213,12 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
           slope1 = TMath::Abs( gem2[0].y/gem2[0].x );
 	  slope1 = TMath::ATan(slope1); assert( slope1 < PI/2);
-	  if( (gem2[0].x<0) && (gem2[0].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem2[0].x<0) && (gem2[0].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem2[0].x>0) && (gem2[0].y <0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem2[0].x<0) && (gem2[0].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem2[0].x<0) && (gem2[0].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem2[0].x>0) && (gem2[0].y <0)) 
+	      slope1 = slope1 + 1.5*PI;
 	  //hThetaDistributionMoller->Fill(theta*180.0/PI);
 	  temp = theta;
 	  //2nd electron
@@ -1239,9 +1229,12 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
 	  slope2 = gem2[1].y / (gem2[1].x);
 	  slope2 = TMath::ATan(slope2);
-	  if( (gem2[1].x<0) && (gem2[1].y>0) ) slope1 = slope1+ PI/2; 
-	  else if( (gem2[1].x<0) && (gem2[1].y<0) ) slope1 = slope1+PI; 
-	  else if( (gem2[1].x>0) && (gem2[1].y<0)) slope1 = slope1 + 1.5*PI;
+	  if( (gem2[1].x<0) && (gem2[1].y>0) ) 
+	      slope1 = slope1+ PI/2; 
+	  else if( (gem2[1].x<0) && (gem2[1].y<0) ) 
+	      slope1 = slope1+PI; 
+	  else if( (gem2[1].x>0) && (gem2[1].y<0)) 
+	      slope1 = slope1 + 1.5*PI;
 	  theta+=temp;
 	  hThetaDistributionMollerBeamLineCorrection->Fill(theta*180.0/PI);
 	  hLinearDeviationMollerAfterCorrection->Fill((slope1-slope2)*180.0/PI - 180.0);
@@ -1328,9 +1321,12 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
 	    slope2 = gem2[0].y / (gem2[0].x);
 	    slope2 = TMath::ATan(slope2);
-	    if( (gem2[0].x<0) && (gem2[0].y>0) ) slope1 = slope1+ PI/2; 
-	    else if( (gem2[0].x<0) && (gem2[0].y<0) ) slope1 = slope1+PI; 
-	    else if( (gem2[0].x>0) && (gem2[0].y<0)) slope1 = slope1 + 1.5*PI;
+	    if( (gem2[0].x<0) && (gem2[0].y>0) ) 
+	        slope1 = slope1+ PI/2; 
+	    else if( (gem2[0].x<0) && (gem2[0].y<0) ) 
+	        slope1 = slope1+PI; 
+	    else if( (gem2[0].x>0) && (gem2[0].y<0)) 
+	        slope1 = slope1 + 1.5*PI;
 	    theta+=temp;
 	    hThetaDistributionMollerBeamLineCorrection->Fill(theta*180.0/PI);
 	    hLinearDeviationMollerAfterCorrection->Fill((slope1-slope2)*180.0/PI - 180.0);
@@ -1383,6 +1379,104 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
     }
 }
 
+template<class T> void GEMPhysHandler::GetGEMClusterMapHyCalCoor(T * online_hit)
+{
+  vector<GEMClusterStruct> hgem1, hgem2;
+  online_hit->GetClusterHyCalCutMode(hgem1, hgem2);
+         
+  if(hgem1.size() > 0)
+    {
+      for(int i=0;i<hgem1.size();i++)
+	{
+	  hhGEMClusterMap->Fill(hgem1[i].x, hgem1[i].y);
+	}
+      if( hgem1.size() == 1)
+	{
+	  hhGEMClusterMapSingleCluster->Fill(hgem1[0].x, hgem1[0].y);
+	}
+      if( hgem1.size() <= 2)
+	{
+	  hhGEMClusterMapMaxTwoCluster->Fill(hgem1[0].x, hgem1[0].y);
+	}
+    }
+  if(hgem2.size() > 0)
+    {
+      for(int i=0;i<hgem2.size();i++)
+	{
+	  hhGEMClusterMap->Fill(hgem2[i].x,hgem2[i].y);
+	}
+      if( hgem2.size() == 1)
+	{
+	  hhGEMClusterMapSingleCluster->Fill(hgem2[0].x, hgem2[0].y);
+	}
+      if( hgem2.size() <= 2)
+	{
+	  hhGEMClusterMapMaxTwoCluster->Fill(hgem2[0].x, hgem2[0].y);
+	}
+    }
+
+}
+
+
+template<class T> void GEMPhysHandler::ComputeGEMOffsets(T * online_hit)
+{
+  vector<GEMClusterStruct> gem1, gem2;
+  online_hit->GetClusterGEM(gem1, gem2);
+
+  //general cut
+  //if( (gem1.size()>=5 ) || (gem2.size()>=5) ) continue;
+  //if( energy < 900  || energy > 1300) continue;
+
+  // offset between GEMs
+  // [1]: refer to "GEMZeroHitDecoder.cxx"
+  /*
+   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   * overlapping area: 44mm
+   * x side length: 550.4
+   * overlapping area starting with: 550.4/2 -44 = 231.2
+   *
+   * origin trasfer to beam hole center:
+   *    transfered distance: 550.4/2 - 44/2 = 253.2
+   *    GEM1 coordinate transfer: x1 = x1 - 253.2; y1 = y1
+   *    GEM2 coordinate transfer: x2 = 253.2 - x2; y2 = -y2
+   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   */
+
+  // compute offsets between two gem chambers
+  if( (gem1.size()==1) && (gem2.size()==1) )
+    {
+      if( (gem1[0].x > OverlapStart) && (gem2[0].x > OverlapStart) )
+	{
+	  {
+	    //z offset correction
+	    double z_gem1 = 5300; //mm
+	    double z_gem2 = 5260; //mm
+	    double x1prime = (gem1[0].x-O_Transfer)*z_gem2/z_gem1;
+	    double y1prime = gem1[0].y*z_gem2/z_gem1;
+	    hYOffsetGEM->Fill( ( y1prime ) - ( -gem2[0].y) );
+	    hXOffsetGEM->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
+
+	    //after correction
+	    double xoffset = -0.3618;// x1 - x2
+	    double yoffset = 0.1792; // y1 - y2
+	    x1prime = (gem1[0].x - xoffset -O_Transfer)*z_gem2/z_gem1;
+	    y1prime = (gem1[0].y - yoffset )*z_gem2/z_gem1;
+	    hYOffsetGEMAfterCorrection->Fill( ( y1prime ) - ( -gem2[0].y) );
+	    hXOffsetGEMAfterCorrection->Fill(( ( x1prime) - ( O_Transfer-gem2[0].x) ));
+	  }
+	}
+    }
+    
+  if( gem1.size()>0 || gem2.size()>0)
+    {
+      online_hit->FillHistos(hNbClusterPerPlaneX, hNbClusterPerPlaneY, hClusterDistX, hClusterDistY);
+
+      // for detector efficiency
+      neff += 1.0;
+    }
+
+}
+
 template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 {
   // theta distribution
@@ -1416,8 +1510,10 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 	  hChargeRatio[0] -> Fill( gem1[i].x_charge/gem1[i].y_charge);
 	  hClusterADCDistXSide[0]->Fill( gem1[i].x_charge);
 	  hClusterADCDistYSide[0]->Fill( gem1[i].y_charge);
-	  if( gem1[i].x_charge<0)cout<<"x1 negative charge???"<<endl;;
-	  if( gem1[i].y_charge<0)cout<<"y1 negative charge???"<<endl;;
+	  if( gem1[i].x_charge<0)
+	      cout<<"x1 negative charge???"<<endl;;
+	  if( gem1[i].y_charge<0)
+	      cout<<"y1 negative charge???"<<endl;;
 	  if( gem1[i].x_charge<100 || gem1[i].y_charge<100 )
 	    {
 	      //cout<<"Warning!!! unusual cluster adcs..."<<endl;
@@ -1445,8 +1541,10 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 	  hChargeRatio[1] -> Fill( gem2[i].x_charge/gem2[i].y_charge);
 	  hClusterADCDistXSide[1]->Fill( gem2[i].x_charge);
 	  hClusterADCDistYSide[1]->Fill( gem2[i].y_charge);
-	  if( gem2[i].x_charge<0)cout<<"x2 negative charge???"<<endl;
-	  if( gem2[i].y_charge<0)cout<<"y2 negative charge???"<<endl;
+	  if( gem2[i].x_charge<0)
+	      cout<<"x2 negative charge???"<<endl;
+	  if( gem2[i].y_charge<0)
+	      cout<<"y2 negative charge???"<<endl;
 	  if( gem2[i].x_charge<100 || gem2[i].y_charge<100 )
 	    {
 	      //cout<<"Warning!!! unusual cluster adcs..."<<endl;
@@ -1748,9 +1846,18 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
 	    }
 	}
       //after searching
-      if( (match_gem1 == 1) && (match_gem2 == 1) ) cout<<"GEMPhysHandler::HyCalGEMPosMatch(): error...."<<endl;
-      if( match_gem1 == 1 ) { gem1[m_index].energy = m_e; res_gem1.push_back(gem1[m_index]);}
-      if( match_gem2 == 1 ) { gem2[m_index].energy = m_e; res_gem2.push_back(gem2[m_index]);}
+      if( (match_gem1 == 1) && (match_gem2 == 1) ) 
+          cout<<"GEMPhysHandler::HyCalGEMPosMatch(): error...."<<endl;
+      if( match_gem1 == 1 ) 
+      { 
+          gem1[m_index].energy = m_e; 
+	  res_gem1.push_back(gem1[m_index]);
+      }
+      if( match_gem2 == 1 ) 
+      { 
+          gem2[m_index].energy = m_e; 
+	  res_gem2.push_back(gem2[m_index]);
+      }
     }
   
   gem1.clear();
@@ -1925,5 +2032,3 @@ void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<G
       }
     } 
 }
-
-
