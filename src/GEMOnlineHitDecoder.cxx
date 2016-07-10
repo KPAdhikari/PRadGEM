@@ -29,8 +29,6 @@ GEMOnlineHitDecoder::GEMOnlineHitDecoder(uint32_t *rbuf, int Size, GEMPedestal *
 
   fMapping = PRDMapping::GetInstance();
   
-  GEMConfigure configure;
-  pedestal_file = configure.GetLoadPedPath();
   ped = pPed;
 
   FECs.clear();
@@ -38,7 +36,7 @@ GEMOnlineHitDecoder::GEMOnlineHitDecoder(uint32_t *rbuf, int Size, GEMPedestal *
   FECs = fMapping->GetBankIDSet();
  
   // cluster information  
-  fMinClusterSize = 1;
+  fMinClusterSize = 2;
   fMaxClusterSize = 20;
   //fIsClusterMaxOrTotalADCs = "totalADCs";
   fIsClusterMaxOrTotalADCs = "maximumADCs";

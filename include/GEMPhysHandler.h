@@ -9,6 +9,7 @@
 #include <string>
 #include <cassert>
 #include <algorithm>
+#include <unordered_map>
 
 #include <arpa/inet.h>
 
@@ -18,7 +19,7 @@
 #include <TMath.h>
 #include <TDirectory.h>
 
-#include <stdio.h> //for getchar()
+#include <stdio.h>
 
 //evio
 #include "evioUtil.hxx"
@@ -65,12 +66,14 @@ public:
   int GEMHyCalPosMatch(int i, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit);
   int HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit);
   void GetCutFlags(int nth_event, vector<uint32_t> * vec, int & scin_flag, int & hycal_flag);
+  
+  void InitTDCGroup();
+  int GetTDCGroup(const string &);
 
 private:
   vector<int> vSRSSingleEventData;
   vector<int> vSRSZeroEventData;
-  bool larggerthan(int i, int j) {return i>j;}
-
+  unordered_map<string, int> TDC_Map; 
   set<int> FECs;  // FEC ID
 
   string fileList[100];
@@ -127,6 +130,9 @@ private:
 
   float O_Transfer;
   float OverlapStart;
+
+  // save results
+  fstream outfile;
 
 };
 

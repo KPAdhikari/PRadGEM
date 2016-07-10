@@ -44,6 +44,9 @@ public:
   int UseHyCalTimingCut;
   int UseHyCalPosMatch;
 
+  string TDC[10];
+  int TDC_Quan;
+
   string TDC_Channel;
   double TDC_Start;
   double TDC_End;

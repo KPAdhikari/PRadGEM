@@ -1,14 +1,12 @@
 #include "GEMPhysHandler.h"
-
 #include "GEMOnlineHitDecoder.h"
 #include "GEMZeroHitDecoder.h"
-
 #include "PRadDataHandler.h"
 #include "PRadReconstructor.h"
 #include "PRadTDCGroup.h"
 #include "PRadBenchMark.h"
+#include <fstream>
 
-//#include "PRadReconstructor.h"
 using namespace std;
 using namespace evio;
 
@@ -26,6 +24,16 @@ using namespace evio;
 
 GEMPhysHandler::GEMPhysHandler()
 {
+  config.LoadConfigure();
+  string txt = config.phys_results_path;
+  txt = txt + string(".run.log");
+  outfile.open(txt.c_str(), std::ios::out);
+  outfile.close();
+  outfile.open(txt.c_str(), std::ios::in|std::ios::out);
+  if( !outfile.is_open() )
+      cout<<"Error: cannot open run_log file..."
+          <<endl;
+
   fRawDecoder = 0;
 
   nScinEvents = 0;
@@ -56,13 +64,24 @@ GEMPhysHandler::GEMPhysHandler()
   ped = new GEMPedestal(pedestal_file);
   ped -> LoadPedestal( );
   //for debug
-  cout<<"FECs Found:  ";
+  outfile<<"FECs Found:  ";
   set<int>::iterator it;
   for(it=FECs.begin(); it!=FECs.end(); ++it)
     {
-      cout<<(*it)<<"  ";
+      outfile<<(*it)<<"  ";
     }
-  cout<<endl;
+  outfile<<endl;
+
+  // tdc group log
+  outfile<<"TDC group quantity: "
+         <<config.TDC_Quan
+	 <<endl;
+  for(int i=0;i<config.TDC_Quan;i++)
+  {
+     outfile<<"TDC Group: "
+            <<config.TDC[i]
+	    <<endl;
+  }
 
   //chao
   pHandler = new PRadDataHandler();
@@ -76,15 +95,18 @@ GEMPhysHandler::GEMPhysHandler()
   reconstruct = new PRadReconstructor();
   reconstruct->SetHandler(pHandler);
 
-  totalEnergyDeposit = 1800; //MeV
+  totalEnergyDeposit = config.Hycal_Energy; //MeV
   beamEnergy = 2.147;//GeV
+
   //compute intersection points
   px1 = 0x270F;py1=0x270F;px2=0x270F;py2=0x270F;
   cx1 = 0x270F;cy1=0x270F;cx2=0x270F;cy2=0x270F;
 
   px1_c = 0x270F;py1_c=0x270F;px2_c=0x270F;py2_c=0x270F;
   cx1_c = 0x270F;cy1_c=0x270F;cx2_c=0x270F;cy2_c=0x270F;
- 
+
+  InitTDCGroup();
+
   //test
   hhTimeCorrelation = new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
   hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
@@ -94,26 +116,27 @@ GEMPhysHandler::GEMPhysHandler()
   // origin transfer
   O_Transfer = 253.2;
   OverlapStart = 231.2;
-
 }
 
 GEMPhysHandler::~GEMPhysHandler()
 {
+  outfile.close();
   ped->Delete();
 }
 
 void GEMPhysHandler::ProcessAllFiles()
 {
-  //GEMConfigure config;
   int nFile = config.nFile;
-  cout<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "
+  outfile<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "
       <<nFile
       <<endl;
+
   for(int i=0;i<nFile;i++)
     {
-      cout<<config.fileList[i]<<endl;
+      outfile<<config.fileList[i]<<endl;
     }
-  cout<<"TDC Cut: "<<config.TDC_Channel
+
+  outfile<<"TDC Cut: "<<config.TDC_Channel
       <<", Start TIME:  "<<config.TDC_Start
       <<", END TIME:  "<<config.TDC_End
       <<", HyCal Energy Cut:  "<<config.Hycal_Energy
@@ -140,24 +163,28 @@ void GEMPhysHandler::ProcessAllFiles()
   SavePhysResults();
 
 #ifdef TDC_CHECK_EFFICIENCY
-  cout<<endl<<endl;
+  outfile<<endl<<endl;
   double eff_real = (double)neff/nElectron;
-  cout<<"GEM Hit: "<<neff<<endl;
-  cout<<"TDC:  "<<nElectron<<endl;
-  cout<<"Total Number of Events in "<<nFile
+  outfile<<"GEM Hit: "<<neff<<endl;
+  outfile<<"TDC:  "<<nElectron<<endl;
+  outfile<<"Total Number of Events in "<<nFile
       <<" Files: "<<nTotalEvents
       <<endl;
-  cout<<"------------------------------------"<<endl;
-  cout<<"Overall Detector Efficiency: "<<eff_real<<endl;
-  cout<<"------------------------------------"<<endl;
+  outfile<<"------------------------------------"<<endl;
+  outfile<<"Overall Detector Efficiency: "<<eff_real<<endl;
+  outfile<<"------------------------------------"<<endl;
 #endif
 }
 
 int GEMPhysHandler::ProcessAllEvents(int evtID )
 {
+  outfile<<"Process File:  "<<filename<<endl;
   cout<<"Process File:  "<<filename<<endl;
+
   int entry = 0;
-  double ntrigger = 0.0; // for detector efficiency
+  double neff_previous = neff;
+  double nElectron_previous = nElectron;
+  double ntrigger_current_file = 0.0; // for detector efficiency
 
   PRadBenchMark timer;
 
@@ -166,7 +193,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     chan.open();
     while(chan.read())
       {
-        ntrigger +=1.0;
+        ntrigger_current_file +=1.0;
 	nTotalEvents += 1.0;
 
         pHandler->Decode(chan.getBuffer());
@@ -191,7 +218,7 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 
 	evioDOMTree event(chan);
 	evioDOMNodeListP fecEventList = event.getNodeList( isLeaf() );
-	//cout<<"total number of all banks: "<<fecEventList->size()<<endl;
+	//outfile<<"total number of all banks: "<<fecEventList->size()<<endl;
 
 	evioDOMNodeList::iterator iter;
 
@@ -209,12 +236,12 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
             if( (*iter)->tag == 57633 ) // ti bank
               {
                 vector<uint32_t> *ti_vec = (*iter)->getVector<uint32_t>();
-                GetCutFlags(ntrigger, ti_vec, convert, HyCalTimingCut);
+                GetCutFlags(ntrigger_current_file, ti_vec, convert, HyCalTimingCut);
               }
 	  }
 
-        if(ntrigger<10)
-	  cout<<"HyCalTimingCut : "<<HyCalTimingCut
+        if(ntrigger_current_file<10)
+	  outfile<<"HyCalTimingCut : "<<HyCalTimingCut
 	      <<"  convert: "<<convert
 	      <<"  photon energy: "<<photon_energy
 	      <<endl;
@@ -226,9 +253,9 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 
 	if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config.Hycal_Energy) ) 
 	  { 
-	    //cout<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
-	    if(ntrigger<10) 
-	      cout<<"GEMPhys::ProcessEvents: Energy HyCal: "
+	    //outfile<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
+	    if(ntrigger_current_file<10) 
+	      outfile<<"GEMPhys::ProcessEvents: Energy HyCal: "
 		  <<photon_energy
 		  <<endl;
 	    nElectron+=1;
@@ -282,14 +309,14 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	  if( (evtID != -1) && (entry > evtID) ) 
 	    break; // process evtID many events
 
-	  if(ntrigger<10) 
-	    cout<<"GEMPhysHandelr::entry: "<<entry
-		<< " nElectron: " << nElectron 
-		<< " nScinEvents: "<<nScinEvents
-		<<endl;
-	  if(ntrigger<10) 
-	    cout<<"SRS Event Size [uint_32]:"<<vSRSSingleEventData.size()
-		<<endl;
+	  if(ntrigger_current_file<10) 
+	    outfile<<"GEMPhysHandelr::entry: "<<entry
+		  << " nElectron: " << nElectron 
+		  << " nScinEvents: "<<nScinEvents
+		  <<endl;
+	  if(ntrigger_current_file<10) 
+	    outfile<<"SRS Event Size [uint_32]:"<<vSRSSingleEventData.size()
+		   <<endl;
 
 #ifndef ZEROSUPPRESSION
 	  if (vSRSSingleEventData.size() == 0 ) 
@@ -348,35 +375,31 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     exit(EXIT_FAILURE);
   }
 
-  cout << "used time: " << timer.GetElapsedTime() << " ms" << endl;
+  outfile << "used time: " << timer.GetElapsedTime() << " ms" << endl;
+     cout << "used time: " << timer.GetElapsedTime() << " ms" << endl;
 
   // claculate efficiency
-  double eff = neff/ntrigger;
-  cout<<"------------------------------------"<<endl;
-  cout<<"Overall Detector Efficiency: "<<eff<<endl;
-  cout<<"------------------------------------"<<endl;
+  double eff = (double)(neff-neff_previous)/ntrigger_current_file;
+  outfile<<"photon conversion rate in single file: "<<eff<<endl;
 
 #ifdef TDC_CHECK_EFFICIENCY
-  double eff_real = (double)neff/nElectron;
-  cout<<"GEM Hit: "<<neff<<endl;
-  cout<<"TDC Events:  "<<nElectron<<endl;
-  cout<<"Number of Events in Single File: "<<ntrigger<<endl;
-  cout<<"------------------------------------"<<endl;
-  cout<<"Overall Detector Efficiency: "<<eff_real<<endl;
-  cout<<"------------------------------------"<<endl;
+  double eff_real = (double)(neff-neff_previous)/(nElectron-nElectron_previous);
+  outfile<<"GEM Hit: "<<neff-neff_previous<<endl;
+  outfile<<"Scin & HyCal TDC cut Events:  "<<nElectron-nElectron_previous<<endl;
+  outfile<<"Number of Events in Single File: "<<ntrigger_current_file<<endl;
+  outfile<<"Detector Efficiency in single file : "<<eff_real<<endl<<endl;
 #endif
 
   return entry;
 }
 
-void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int & convert, int & HyCalTimingCut)
+int GEMPhysHandler::GetTDCGroup( const string &st)
 {
-  int ti_size = ti_vec->size();
+    return TDC_Map[st]; 
+}
 
-  if(config.UseHyCalTimingCut == 1)
-    {
-      HyCalTimingCut = 0;
-      //HyCal timing cut
+void GEMPhysHandler::InitTDCGroup()
+{
       //G22  time slot 97  ; G1:112; G2:100; G6:113
       //G21  time slot 115 ; G10:67; W12:92
       //W31  time slot 116 ; W7:82 ; W8: 76
@@ -397,16 +420,50 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
        * W23 120  :   W34  121:   W17 122:  W35 123
        * W29 124  :    W5  125: Scin S1 126 : Scin S2 127
        * ************************************************/
+
+  TDC_Map[string("G1")] = 112;TDC_Map[string("G2")] = 100;TDC_Map[string("G3")] = 109;TDC_Map[string("G4")] = 64;
+  TDC_Map[string("G5")] = 69;TDC_Map[string("G6")] = 113;TDC_Map[string("G25")] = 65;TDC_Map[string("W6")] = 66;
+  TDC_Map[string("G10")] = 67;TDC_Map[string("W11")] = 68;TDC_Map[string("W18")] = 70;TDC_Map[string("W15")] = 72;
+  TDC_Map[string("W9")] = 73;TDC_Map[string("W20")] = 74;TDC_Map[string("W33")] = 75;TDC_Map[string("W8")] = 76;
+  TDC_Map[string("W27")] = 77;TDC_Map[string("W21")] = 78;TDC_Map[string("W2")] = 80;TDC_Map[string("W26")] = 81;
+  TDC_Map[string("W7")] = 82;TDC_Map[string("W1")] = 83;TDC_Map[string("W3")] = 84;TDC_Map[string("W14")] = 85;
+  TDC_Map[string("W24")] = 88;TDC_Map[string("G24")] = 89;TDC_Map[string("G20")] = 90;TDC_Map[string("G15")] = 91;
+  TDC_Map[string("W12")] = 92;TDC_Map[string("W36")] = 93;TDC_Map[string("W30")] = 94;TDC_Map[string("G11")] = 96;
+  TDC_Map[string("G22")] = 97;TDC_Map[string("W25")] = 98;TDC_Map[string("W13")] = 99;TDC_Map[string("G2")] = 100;
+  TDC_Map[string("W32")] = 101;TDC_Map[string("W28")] = 104;TDC_Map[string("W4")] = 105;TDC_Map[string("W10")] = 106;
+  TDC_Map[string("W16")] = 107;TDC_Map[string("W22")] = 108;TDC_Map[string("G3")] = 109;TDC_Map[string("G23")] = 110;
+  TDC_Map[string("G16")] = 114;TDC_Map[string("G21")] = 115;TDC_Map[string("W31")] = 116;TDC_Map[string("W19")] = 117;
+  TDC_Map[string("W23")] = 120;TDC_Map[string("W34")] = 121;TDC_Map[string("W17")] = 122;TDC_Map[string("W35")] = 123;
+  TDC_Map[string("W29")] = 124;TDC_Map[string("W5")] = 125;TDC_Map[string("S1")] = 126;TDC_Map[string("S2")] = 127;
+}  
+
+void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & convert, int & HyCalTimingCut)
+{
+  int ti_size = ti_vec->size();
+
+  if(config.UseHyCalTimingCut == 1)
+    {
+
+      HyCalTimingCut = 0;
       for(int i=0;i<ti_size;i++)
 	{
 	  if( (ti_vec->at(i) & 0xf8000000) !=0) continue;
 	  int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
-	  //if( (tdc_ch == 121)||(tdc_ch == 75)||(tdc_ch == 77) ||( tdc_ch == 104))
-	  //if( (tdc_ch == 67)||(tdc_ch == 92) )
-	  if( (tdc_ch == 123))
+          
+          int right_tdc_channel = 0;
+	  for(int i=0;i<config.TDC_Quan;i++)
+	  {
+	     if(tdc_ch == GetTDCGroup(config.TDC[i]) )
+	         right_tdc_channel = 1;
+	  }
+
+	  if( right_tdc_channel == 1)
 	    {
 	      double tdc_value = (ti_vec->at(i)) & 0x7ffff; 
-	      if(nth_event<100) cout<<tdc_value<<endl;
+
+	      if(nth_event<100) 
+                  outfile<<tdc_value<<endl;
+
 	      if( (tdc_value>config.Hycal_Timing_Cut_Start) && (tdc_value<config.Hycal_Timing_Cut_End) ) 
 		{
 		  HyCalTimingCut = 1;  
@@ -433,16 +490,16 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 	  //printf("0x%x \n", ti_vec->at(i));
 	  if(config.TDC_Channel == "126")
 	    {
-	      //cout<<" 126 cut..."<<endl;
+	      //outfile<<" 126 cut..."<<endl;
 	      if( (tdc_ch == 126)) 
 		{ 
 		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
 		  //if( (tdc_value>7600) && (tdc_value<7800) )
 		  //if( (tdc_value>7000) && (tdc_value<10000) )
-		  //cout<<config.TDC_Start<<"  "<<config.TDC_End<<endl;
+		  //outfile<<config.TDC_Start<<"  "<<config.TDC_End<<endl;
 		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
 		    {
-		      //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      //outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 		      //hhTimeCorrelation->Fill(timing_test, tdc_value);
 		      //hTimeDiff->Fill(tdc_value - timing_test);
 		      convert = 1; 
@@ -453,7 +510,7 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 
 	  if(config.TDC_Channel == "127")
 	    {
-	      //cout<<" 127 cut ..."<<endl;
+	      //outfile<<" 127 cut ..."<<endl;
 	      if( (tdc_ch == 127)) 
 		{ 
 		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
@@ -461,7 +518,7 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 		  //if( (tdc_value>7000) && (tdc_value<10000) )
 		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
 		    {
-		      //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      //outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 		      convert = 1; 
 		      break;
 		    }
@@ -470,7 +527,7 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 
 	  if(config.TDC_Channel == "126and127")
 	    {
-	      //cout<< " 126 and 127 cut ..."<<endl;
+	      //outfile<< " 126 and 127 cut ..."<<endl;
 	      if( (tdc_ch == 126) ) TF126 = 1;
 	      if( (tdc_ch == 127) ) TF127 = 1;
 	      if( (TF126 == 1) && (TF127 == 1) ) 
@@ -480,7 +537,7 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 		  //if( (tdc_value>7000) && (tdc_value<10000) )
 		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
 		    {
-		      // cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      // outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 		      //hhTimeCorrelation->Fill(timing_test, tdc_value);
 		      //hTimeDiff->Fill(tdc_value - timing_test);
 
@@ -492,7 +549,7 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 
 	  if(config.TDC_Channel == "126or127")
 	    {
-	      //cout<< " 126 or 127 cut ..."<<endl;
+	      //outfile<< " 126 or 127 cut ..."<<endl;
 	      if( (tdc_ch == 126) || (tdc_ch == 127) ) 
 		{ 
 		  double tdc_value = (ti_vec->at(i)) & 0x7ffff;
@@ -500,7 +557,7 @@ void GEMPhysHandler::GetCutFlags( int nth_event, vector<uint32_t> *ti_vec, int &
 		  //if( (tdc_value>7000) && (tdc_value<10000) )
 		  if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
 		    {
-		      //cout<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
+		      //outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 		      hhTimeCorrelation->Fill(timing_test, tdc_value);
 		      hTimeDiff->Fill(tdc_value - timing_test);
 
@@ -774,8 +831,8 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 
 		if(D != 0)
 		  {
-		    double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
-		    double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
+		    double xi = (b1*c2 - b2*c1)/D; //outfile<<xi<<endl;
+		    double yi = (a2*c1 - a1*c2)/D; //outfile<<yi<<endl;
 		    hXOffsetFromMoller->Fill(xi);
 		    hYOffsetFromMoller->Fill(yi);
 		    hhMollerCenter->Fill(xi, yi);
@@ -886,8 +943,8 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 
 		if(D != 0)
 		  {
-		    double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
-		    double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
+		    double xi = (b1*c2 - b2*c1)/D; //outfile<<xi<<endl;
+		    double yi = (a2*c1 - a1*c2)/D; //outfile<<yi<<endl;
 		    hXOffsetFromMoller->Fill(xi);
 		    hYOffsetFromMoller->Fill(yi);
 		    hhMollerCenter->Fill(xi, yi);
@@ -998,8 +1055,8 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 
 		  if(D != 0)
 		    {
-		      double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
-		      double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
+		      double xi = (b1*c2 - b2*c1)/D; //outfile<<xi<<endl;
+		      double yi = (a2*c1 - a1*c2)/D; //outfile<<yi<<endl;
 		      hXOffsetFromMoller->Fill(xi);
 		      hYOffsetFromMoller->Fill(yi);
 		      hhMollerCenter->Fill(xi, yi);
@@ -1173,8 +1230,8 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
 		if(D != 0)
 		  {
-		    double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
-		    double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
+		    double xi = (b1*c2 - b2*c1)/D; //outfile<<xi<<endl;
+		    double yi = (a2*c1 - a1*c2)/D; //outfile<<yi<<endl;
 		    hXOffsetFromMollerAfterCorrection->Fill(xi);
 		    hYOffsetFromMollerAfterCorrection->Fill(yi);
 		    hhMollerCenterAfterCorrection->Fill(xi, yi);
@@ -1264,8 +1321,8 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
 		if(D != 0)
 		  {
-		    double xi = (b1*c2 - b2*c1)/D; //cout<<xi<<endl;
-		    double yi = (a2*c1 - a1*c2)/D; //cout<<yi<<endl;
+		    double xi = (b1*c2 - b2*c1)/D; //outfile<<xi<<endl;
+		    double yi = (a2*c1 - a1*c2)/D; //outfile<<yi<<endl;
 		    hXOffsetFromMollerAfterCorrection->Fill(xi);
 		    hYOffsetFromMollerAfterCorrection->Fill(yi);
 		    hhMollerCenterAfterCorrection->Fill(xi, yi);
@@ -1287,13 +1344,13 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
       {
 	if(  ( (gem1[0].x)*(gem2[0].x) < 0 ) && ( gem1[0].y* (gem2[0].y) < 0 ) ) 
 	  { 
-	    //cout<<gem1[0].x << " "<<gem2[0].x <<" "<<gem1[0].y << " "<<gem2[0].y<<endl;
+	    //outfile<<gem1[0].x << " "<<gem2[0].x <<" "<<gem1[0].y << " "<<gem2[0].y<<endl;
             //beamline correction
 	    gem1[0].x -= xoffset_beam;
 	    gem2[0].x -= xoffset_beam;
 	    gem1[0].y -= yoffset_beam;
 	    gem2[0].y -= yoffset_beam;
-	    //cout<<gem1[0].x << " "<<gem2[0].x <<" "<<gem1[0].y << " "<<gem2[0].y<<endl;
+	    //outfile<<gem1[0].x << " "<<gem2[0].x <<" "<<gem1[0].y << " "<<gem2[0].y<<endl;
             //getchar();
 
 	    if( (gem1[0].energy + gem2[0].energy) < totalEnergyDeposit) return; 
@@ -1358,7 +1415,7 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 		    {
 		      double xi = (b1*c2 - b2*c1)/D; 
 		      double yi = (a2*c1 - a1*c2)/D;
-		      //cout<<xi<<" "<<yi<<" D :"<<D<<endl;
+		      //outfile<<xi<<" "<<yi<<" D :"<<D<<endl;
 		      //getchar();
 		      hXOffsetFromMollerAfterCorrection->Fill(xi);
 		      hYOffsetFromMollerAfterCorrection->Fill(yi);
@@ -1511,13 +1568,13 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 	  hClusterADCDistXSide[0]->Fill( gem1[i].x_charge);
 	  hClusterADCDistYSide[0]->Fill( gem1[i].y_charge);
 	  if( gem1[i].x_charge<0)
-	      cout<<"x1 negative charge???"<<endl;;
+	      outfile<<"x1 negative charge???"<<endl;;
 	  if( gem1[i].y_charge<0)
-	      cout<<"y1 negative charge???"<<endl;;
+	      outfile<<"y1 negative charge???"<<endl;;
 	  if( gem1[i].x_charge<100 || gem1[i].y_charge<100 )
 	    {
-	      //cout<<"Warning!!! unusual cluster adcs..."<<endl;
-	      //cout<<"GEM1: charge: "<<charge_gem1[i].x<<"  "<<charge_gem1[i].y<<endl;
+	      //outfile<<"Warning!!! unusual cluster adcs..."<<endl;
+	      //outfile<<"GEM1: charge: "<<charge_gem1[i].x<<"  "<<charge_gem1[i].y<<endl;
 	    }
 	}
     }
@@ -1542,13 +1599,13 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 	  hClusterADCDistXSide[1]->Fill( gem2[i].x_charge);
 	  hClusterADCDistYSide[1]->Fill( gem2[i].y_charge);
 	  if( gem2[i].x_charge<0)
-	      cout<<"x2 negative charge???"<<endl;
+	      outfile<<"x2 negative charge???"<<endl;
 	  if( gem2[i].y_charge<0)
-	      cout<<"y2 negative charge???"<<endl;
+	      outfile<<"y2 negative charge???"<<endl;
 	  if( gem2[i].x_charge<100 || gem2[i].y_charge<100 )
 	    {
-	      //cout<<"Warning!!! unusual cluster adcs..."<<endl;
-	      //cout<<"GEM2: charge: "<<charge_gem2[i].x<<"  "<<charge_gem2[i].y<<endl;
+	      //outfile<<"Warning!!! unusual cluster adcs..."<<endl;
+	      //outfile<<"GEM2: charge: "<<charge_gem2[i].x<<"  "<<charge_gem2[i].y<<endl;
 	    }
 	}
     }

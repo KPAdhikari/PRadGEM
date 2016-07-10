@@ -6,19 +6,20 @@ GEMConfigure::GEMConfigure()
 {
   nFile = 0;
   TDC_Channel ="";
+  TDC_Quan = 0;
   TDC_Start = 0;
   TDC_End = 0;
   Hycal_Timing_Cut_Start = 0;
   Hycal_Timing_Cut_End = 0;
   Hycal_Energy = 0;
   configure_file = "./gem.cfg";
-  LoadConfigure();
+  //LoadConfigure();
 }
 
 GEMConfigure::GEMConfigure(const char * file)
 {
   configure_file = file;
-  LoadConfigure();
+  //LoadConfigure();
 }
 
 GEMConfigure::~GEMConfigure()
@@ -69,7 +70,7 @@ void GEMConfigure::LoadConfigure()
         tokens = strtok(NULL, " :,");
 	nFile = atoi(tokens);
       }
-      else if(s=="INPUTFILE")
+     else if(s=="INPUTFILE")
       {
 	tokens = strtok(NULL, " :,");
 	fileHeader = tokens;
@@ -81,6 +82,22 @@ void GEMConfigure::LoadConfigure()
 	for(int i=evioStart; i<= evioEnd;i++)
 	{
 	  fileList[kk_file++] = fileHeader+"."+to_string(i);
+	}
+      }
+      else if(s=="HyCalTDCGroupQuantity")
+      {
+        tokens = strtok(NULL, " :,");
+	TDC_Quan = atoi(tokens);
+        cout<<"TDC_Quan: "<<TDC_Quan<<endl;
+      }
+      else if(s=="HyCalTDCGroup")
+      {
+        int ii = TDC_Quan;
+	while(--ii>=0)
+	{
+	 tokens = strtok(NULL, " :,");
+	 TDC[ii] = tokens;
+         cout<<TDC[ii]<<endl;
 	}
       }
       else if(s == "TDCChannel")
