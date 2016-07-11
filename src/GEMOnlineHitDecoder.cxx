@@ -940,7 +940,7 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
    * Convert GEM coordinate to HyCal coordinate
    *
    * **************************************
-   *    Move GEM coordinate to Beam Hole center
+   *    Move GEM coordinate to HyCal Hole center
    *    overlapping area: hole diameter (44mm)
    *    origin shift: 550.4/2 - (44-pitch)/2 = 253.2
    *
