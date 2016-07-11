@@ -43,14 +43,13 @@ public:
 
 public:
   TH2F* hhGEMClusterMap;
+  TH2F* hhGEMClusterMapAfterMatch;
   TH2F* hhGEMClusterMapSingleCluster;
   TH2F* hhGEMClusterMapMaxTwoCluster;
   TH2F* hhHyCalClusterMap;
-  TH1F* hGEMClusterMul;
   TH1F* hHyCalEnergy;
   TH1F* hHyCalEnergyEp;
   TH1F* hHyCalEnergyMoller;
-  TH1F* hHyCalClusterMul;
 
   TH1F* hThetaDistribution;
   TH1F* hThetaDistributionEp;
@@ -67,6 +66,11 @@ public:
   TH1F* hQSquareEp5;
   TH2F* hhQSquareScattAngleEp;
 
+  // ep moller ratio
+  // cross section ratio 
+  TH1F* hQuantityOfClustersHyCal;
+  TH1F* hQuantityOfClustersGEMBeforeMatch;
+  TH1F* hQuantityOfClustersGEMAfterMatch;
 
   TH2F* hhEnergyVsAngle;
   TH2F* hhEnergyVsAngleEp;
@@ -88,6 +92,8 @@ public:
   TH1F* hYOffsetGEM;
   TH1F* hXOffsetGEMAfterCorrection;
   TH1F* hYOffsetGEMAfterCorrection;
+  // r offsets between gem and Hycal
+  TH1F* hROffsetGEMHyCal;
  
   // x, y offset through moller
   TH1F* hXOffsetFromMoller;

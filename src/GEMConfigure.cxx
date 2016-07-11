@@ -13,13 +13,13 @@ GEMConfigure::GEMConfigure()
   Hycal_Timing_Cut_End = 0;
   Hycal_Energy = 0;
   configure_file = "./gem.cfg";
-  //LoadConfigure();
+  LoadConfigure();
 }
 
 GEMConfigure::GEMConfigure(const char * file)
 {
   configure_file = file;
-  //LoadConfigure();
+  LoadConfigure();
 }
 
 GEMConfigure::~GEMConfigure()

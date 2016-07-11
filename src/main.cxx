@@ -27,7 +27,6 @@ int main(int argc, char* argv[])
  
   //Analysis Configure
   GEMConfigure configure;
-  configure.LoadConfigure();
  
   // Load data file
   string file_name;

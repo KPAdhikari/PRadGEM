@@ -96,18 +96,28 @@ void GEMHistoManager::BookHistos()
   }
 
   // single histograms physics histogram
-  hGEMClusterMul = new TH1F("gemnbClusterPerEvent", "# of Clusters Per Event GEM", 100, 0, 100);
-  hGEMClusterMul -> GetXaxis() -> SetTitle("cluster quantity per event on GEM");
-  hGEMClusterMul -> GetYaxis() -> SetTitle("entries");
- 
-  hHyCalClusterMul = new TH1F("hycalnbClusterPerEvent", "# of Clusters Per Event HyCal", 100, 0, 100);
-  hHyCalClusterMul -> GetXaxis() -> SetTitle("cluster quantity per event on HyCal");
-  hHyCalClusterMul -> GetYaxis() -> SetTitle("entries");
- 
+  
+  // ep moller ratio
+  // cross section ratio 
+  hQuantityOfClustersHyCal = new TH1F("hQuantityOfClustersHyCal", "Quantity of Clusters Per Event On HyCal", 100, 0, 10); 
+  hQuantityOfClustersHyCal->GetXaxis()->SetTitle("cluster quantity per event");
+  hQuantityOfClustersHyCal->GetYaxis()->SetTitle("entries");
+  hQuantityOfClustersGEMBeforeMatch = new TH1F("hQuantityOfClustersGEMBeforeMatch", "Quantity of Clusters Per Event on GEM Before Match", 100, 0, 10);
+  hQuantityOfClustersGEMBeforeMatch->GetXaxis()->SetTitle("cluster quantity per event");
+  hQuantityOfClustersGEMBeforeMatch->GetYaxis()->SetTitle("entries");
+  hQuantityOfClustersGEMAfterMatch = new TH1F("hQuantityOfClustersGEMAfterMatch", "Quantity of Clusters Per Event on GEM after Match", 100, 0, 10);
+  hQuantityOfClustersGEMAfterMatch->GetXaxis()->SetTitle("cluster quantity per event");
+  hQuantityOfClustersGEMAfterMatch->GetYaxis()->SetTitle("entries");
+
+
   hhGEMClusterMap = new TH2F("hhGEMClusterMap","Cluster Map", 1000, -650, 650, 1000, -650, 650);
   hhGEMClusterMap -> GetXaxis() -> SetTitle(" x [mm] ");
   hhGEMClusterMap -> GetYaxis() -> SetTitle(" y [mm] ");
- 
+  
+  hhGEMClusterMapAfterMatch = new TH2F("hhGEMClusterMapAfterMatch","Cluster Map", 1000, -650, 650, 1000, -650, 650);
+  hhGEMClusterMapAfterMatch -> GetXaxis() -> SetTitle(" x [mm] ");
+  hhGEMClusterMapAfterMatch -> GetYaxis() -> SetTitle(" y [mm] ");
+
   hhGEMClusterMapSingleCluster = new TH2F("hhGEMClusterMapSingleCluster","Cluster Map single cluster", 1000, -650, 650, 1000, -650, 650);
   hhGEMClusterMapSingleCluster -> GetXaxis() -> SetTitle(" x [mm] "); 
   hhGEMClusterMapSingleCluster -> GetYaxis() -> SetTitle(" y [mm] "); 
@@ -132,10 +142,10 @@ void GEMHistoManager::BookHistos()
   hhHyCalClusterMap2ClusterBeforeMatch -> GetXaxis()->SetTitle(" x [mm] "); 
   hhHyCalClusterMap2ClusterBeforeMatch -> GetYaxis()->SetTitle(" y [mm] "); 
  
-  hhGEMClusterMap2ClusterAfterMatch = new TH2F("hhGEMClusterMap2ClusterBeforeMatch","Cluster Map gem 2 cluster after match", 1000, -650, 650, 1000, -650, 650);
+  hhGEMClusterMap2ClusterAfterMatch = new TH2F("hhGEMClusterMap2ClusterAfterMatch","Cluster Map gem 2 cluster after match", 1000, -650, 650, 1000, -650, 650);
   hhGEMClusterMap2ClusterAfterMatch -> GetXaxis() -> SetTitle(" x [mm] "); 
   hhGEMClusterMap2ClusterAfterMatch -> GetYaxis() -> SetTitle(" y [mm] "); 
- 
+
   hHyCalEnergy = new TH1F("hHyCalEnergy", "HyCal Energy [MeV]", 5100, -100, 5000);
   hHyCalEnergy -> GetXaxis() -> SetTitle(" Energy [MeV] ");
   hHyCalEnergy -> GetYaxis() -> SetTitle("entries ");
@@ -279,6 +289,10 @@ void GEMHistoManager::BookHistos()
   hXOffsetGEM = new TH1F("hXOffsetGEM", "x offset between two GEM chambers", 1000, -20, 20);
   hXOffsetGEM -> GetXaxis()->SetTitle(" x offset [mm] "); 
   hXOffsetGEM -> GetYaxis()->SetTitle(" entries "); 
+
+  hROffsetGEMHyCal = new TH1F("hROffsetGEMGEMHyCal", "r offset between clusters on GEM and HyCal", 1000, -200, 200);
+  hROffsetGEMHyCal -> GetXaxis()->SetTitle("offset [mm] "); 
+  hROffsetGEMHyCal -> GetYaxis()->SetTitle(" entries "); 
  
   hYOffsetGEM = new TH1F("hYOffsetGEM", "y offset between two GEM chambers", 1000, -20, 20);
   hYOffsetGEM -> GetXaxis()->SetTitle(" x offset [mm] "); 

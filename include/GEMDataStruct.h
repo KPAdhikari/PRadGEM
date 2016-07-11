@@ -8,6 +8,7 @@ struct GEMClusterStruct
     float x_charge;
     float y_charge;
     float energy;
+    float z;
 
     GEMClusterStruct(float xi, float yi, 
                float cix = 0., float ciy = 0., 
@@ -19,6 +20,7 @@ struct GEMClusterStruct
     void SetY(float xp) {y = xp;}
     void SetXCharge(float xp) {x_charge = xp;}
     void SetYCharge(float xp) {y_charge = xp;}
+    void SetZ(float xp) { z = xp;}
 
 };
 

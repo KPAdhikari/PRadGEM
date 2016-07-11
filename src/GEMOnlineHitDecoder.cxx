@@ -960,9 +960,9 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
   double z_gem2 = 5260; //mm
 
 
-   // cutting edge
-  float edge1 = 0;
-  float edge2 = 0;
+  // cutting edge
+  //float edge1 = 0;
+  //float edge2 = 0;
 
   // offset from data
   double xoffset = -0.3618;
@@ -979,7 +979,7 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
     list<GEMCluster*>::iterator ity = cluster_y1.begin();
     for(int i = 0;i<nbCluster1;i++)
     {
-      if(((*itx)->GetClusterPosition() -xoffset -O_Transfer) /*<= edge1*/) 
+      //if(((*itx)->GetClusterPosition() -xoffset -O_Transfer) <= edge1) 
       // remove overlapping area on GEM1, use the corresponding area on GEM2
       // do not use edge as the cut line. choose some arbitrary line and find the corresponding line on GEM2
       {
@@ -998,7 +998,7 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
     list<GEMCluster*>::iterator ity2 = cluster_y2.begin();
     for(int i = 0;i<nbCluster2;i++)
     {
-      if( ( O_Transfer - ((*itx2)->GetClusterPosition())  ) /*> edge2*/)
+      //if( ( O_Transfer - ((*itx2)->GetClusterPosition())  ) > edge2)
       {
         float c_x = (*itx2)->GetClusterADCs();
 	float c_y = (*ity2)->GetClusterADCs();

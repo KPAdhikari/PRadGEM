@@ -62,6 +62,7 @@ public:
   void GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct>&gem2);
 
   template<class T> void ProcessMollerAfterCorrection(T *hit_decoder);
+  template<class T> void EvalMatchMech(T *hit_decoder);
 
   int GEMHyCalPosMatch(int i, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit);
   int HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit);
@@ -84,6 +85,7 @@ private:
   int nElectron_126;
   int nElectron_127;
   int neff;
+  int neff_after_match;
   
   int nScinEvents;
   int nHyCalEvents;
