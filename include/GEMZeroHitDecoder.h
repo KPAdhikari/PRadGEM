@@ -52,7 +52,8 @@ public:
   TH1F* GetCluster(TString str);
 
   void GetClusterGEM(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2);
-  void GetClusterHyCal(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2);
+  void GetClusterHyCalCutMode(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2);
+  void GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2);
   void GetClusterBeamLine(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2);
 
   void FillHistos(TH1F**, TH1F**, TH1F**, TH1F**);
@@ -80,7 +81,7 @@ private:
   
   //process data with 5 sigma cut
   GEMPedestal *ped;
-  GEMConfigure config;
+
   int nTimeBin;
   vector<Float_t> fPedestalNoises;
 

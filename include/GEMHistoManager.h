@@ -75,7 +75,12 @@ public:
   TH2F* hhEnergyVsAngle;
   TH2F* hhEnergyVsAngleEp;
   TH2F* hhEnergyVsAngleMoller;
+  TH2F* hhEnergyVsAngleEnergyCut;
+  TH2F* hhEnergyVsAngleEpEnergyCut;
+  TH2F* hhEnergyVsAngleMollerEnergyCut;
+
   TH2F* hhEnergyVsAngleHyCal2CGEM1C;
+
   //2d cluster map for hycal 2 gem 1
   TH2F * hhGEMClusterMapHyCal2GEM1;
   TH2F * hhHyCalClusterMapHyCal2GEM1;

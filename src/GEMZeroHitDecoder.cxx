@@ -135,8 +135,20 @@ void GEMZeroHitDecoder::Cut()
 
   for(int i=0;i<cut_fSize;i++)
   {
-    if(cut_buf[i] == 0xfecfec99) {totalEntry++; continue;} //GEM data identifier by Sergey, no use for now.
-    if( (cut_buf[i] & 0x7ffff000) == 0x7ffff000 ) {totalEntry++; cout<<"7ffff: "<<cut_buf[i]<<endl;continue;} // check overflow adc value
+    //GEM data identifier by Sergey, no use for now.
+    if(cut_buf[i] == 0xfecfec99) 
+    {
+        totalEntry++; 
+	continue;
+    } 
+    // check overflow adc value
+    if( (cut_buf[i] & 0x7ffff000) == 0x7ffff000 ) 
+    {
+        totalEntry++; 
+	cout<<"7ffff: "<<cut_buf[i]
+	    <<endl;
+	continue;
+    } 
 
     fFECID = ( (cut_buf[i]>>26) & 0xf);
     fADCChannel = ( (cut_buf[i]>>22) & 0xf);
@@ -144,7 +156,8 @@ void GEMZeroHitDecoder::Cut()
     TS = ( (cut_buf[i]>>12) & 0x7 );
     pol = ( (cut_buf[i]>>11) & 0x1);
     adc = ( (cut_buf[i]) & 0x7ff );
-    if(pol == 1) adc = -adc;
+    if(pol == 1) 
+        adc = -adc;
  
     int cnt = 1;
     int avg_adc = adc; 
@@ -158,17 +171,22 @@ void GEMZeroHitDecoder::Cut()
       s.push_back(cut_buf[i]);
       for(int j=i+1;j<cut_fSize;j++)
       {
-        if( ( ( (cut_buf[j]>>26) & 0xf) == fFECID ) && (fADCChannel == ( (cut_buf[j]>>22) & 0xf) ) && (chNo == ( (cut_buf[j]>>15) & 0x7f )) &&  ( (( (cut_buf[j]>>12) & 0x7 ) == 1 ) || (( (cut_buf[j]>>12) & 0x7 ) == 2 ) ))
+        if( ( ( (cut_buf[j]>>26) & 0xf) == fFECID ) && 
+	    (fADCChannel == ( (cut_buf[j]>>22) & 0xf) ) && 
+	    (chNo == ( (cut_buf[j]>>15) & 0x7f )) &&  
+	    ( (( (cut_buf[j]>>12) & 0x7 ) == 1 ) || 
+	    (( (cut_buf[j]>>12) & 0x7 ) == 2 ) ))
 	{
 	    s.push_back(cut_buf[j]);
 	    int p = ( (cut_buf[j]>>11) & 0x1);
 	    int val = ( (cut_buf[j]) & 0x7ff );
-            if(p == 1) val = -val;
+            if(p == 1) 
+	        val = -val;
 	    avg_adc += val;
 	    cnt ++;
 	    totalEntry++;
-	    if(cnt == 4) break;
-
+	    if(cnt == 4) 
+	        break;
 	}
       }
       avg_adc/=cnt;
@@ -183,7 +201,6 @@ void GEMZeroHitDecoder::Cut()
 	{
 	  strip.push_back(s[i]);
 	}
-        
       }
     }
 
@@ -255,8 +272,17 @@ void GEMZeroHitDecoder::EventHandler( )
 
   for(int i=0;i<fSize;i++)
   {
-    if(buf[i] == 0xfecfec99) continue; //GEM data identifier by Sergey, no use for now.
-    if( (buf[i] & 0x7ffff000) == 0x7ffff000 ) {cout<<"7ffff: "<<buf[i]<<endl;continue;} // Temporary solution
+    //GEM data identifier by Sergey, no use for now.
+    if(buf[i] == 0xfecfec99) 
+        continue; 
+
+    // Temporary solution
+    if( (buf[i] & 0x7ffff000) == 0x7ffff000 ) 
+    {
+        cout<<"7ffff: "<<buf[i]
+	    <<endl;
+	continue;
+    } 
     fFECID = ( (buf[i]>>26) & 0xf);
     fADCChannel = ( (buf[i]>>22) & 0xf);
     chNo = ( (buf[i]>>15) & 0x7f );
@@ -264,7 +290,8 @@ void GEMZeroHitDecoder::EventHandler( )
     pol = ( (buf[i]>>11) & 0x1);
     adc = ( (buf[i]) & 0x7ff );
 
-    if(pol == 1) adc = -adc;
+    if(pol == 1) 
+        adc = -adc;
 
     fAPVID = (fFECID<<4)|fADCChannel;
     fAPVKey = fMapping->GetAPVNoFromID(fAPVID);
@@ -588,7 +615,7 @@ void GEMZeroHitDecoder::DeleteClustersInPlaneMap() {
   fListOfClustersZeroFromPlane.clear() ;
 }
 
-void GEMZeroHitDecoder::GetClusterHyCal(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2)
+void GEMZeroHitDecoder::GetClusterHyCalCutMode(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2)
 {
   list<GEMCluster*> cluster_x1 = fListOfClustersZeroFromPlane["pRadGEM1X"];
   list<GEMCluster*> cluster_y1 = fListOfClustersZeroFromPlane["pRadGEM1Y"];
@@ -630,8 +657,8 @@ void GEMZeroHitDecoder::GetClusterHyCal(vector<GEMClusterStruct> &gem1, vector<G
   float edge1 = 0;
   float edge2 = 0;
 
-  double xoffset = -0.3722;
-  double yoffset = 0.1681;
+  double xoffset = -0.3618;
+  double yoffset = 0.1792;
   
   //the above offsets are from the projection on GEM2
   //real GEM1 offsets should be projected back
@@ -668,7 +695,7 @@ void GEMZeroHitDecoder::GetClusterHyCal(vector<GEMClusterStruct> &gem1, vector<G
     list<GEMCluster*>::iterator ity2 = cluster_y2.begin();
     for(int i = 0;i<nbCluster2;i++)
     {
-      if( ( O_Transfer - ((*itx2)->GetClusterPosition())  ) < edge2) continue;
+      if( ( O_Transfer - ((*itx2)->GetClusterPosition())  ) > edge2)
       {
         float c_x = (*itx2)->GetClusterADCs();
 	float c_y = (*ity2)->GetClusterADCs();
@@ -680,6 +707,72 @@ void GEMZeroHitDecoder::GetClusterHyCal(vector<GEMClusterStruct> &gem1, vector<G
   }
 
 }
+
+void GEMZeroHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2)
+{
+  list<GEMCluster*> cluster_x1 = fListOfClustersZeroFromPlane["pRadGEM1X"];
+  list<GEMCluster*> cluster_y1 = fListOfClustersZeroFromPlane["pRadGEM1Y"];
+  list<GEMCluster*> cluster_x2 = fListOfClustersZeroFromPlane["pRadGEM2X"];
+  list<GEMCluster*> cluster_y2 = fListOfClustersZeroFromPlane["pRadGEM2Y"];
+
+  /*
+   * Do the coordinate convert here
+   * Convert GEM coordinate to HyCal coordinate
+   *
+   * **************************************
+   *    Move GEM coordinate to HyCal Hole center
+   *    overlapping area: hole diameter (44mm)
+   *    origin shift: 550.4/2 - (44-pitch)/2 = 253.2
+   *
+   *    gem1: x = x-253.2; y = y
+   *    gem2: x = -x+253.2; y=-y
+   *    
+   *    right-hand coordinate, HyCal Y axis
+   *    must pointing downward
+   *
+   *    beam downstream is z axis direction
+   * **************************************
+   *
+   */
+  double O_Transfer = 253.2;
+  double OverlapLength = 44;
+  double z_gem1 = 5300; //mm
+  double z_gem2 = 5260; //mm
+
+  // offset from data
+  double xoffset = -0.3618;
+  double yoffset = 0.1792;
+
+  //the above offsets are from the projection on GEM2
+  //real GEM1 offsets should be projected back
+  xoffset = xoffset*z_gem1/z_gem2;
+  yoffset = yoffset*z_gem1/z_gem2;
+
+  for( auto &i : cluster_x1)
+  {
+      for(auto &j : cluster_y1)
+      {
+          float c_x = i->GetClusterADCs();
+	  float c_y = j->GetClusterADCs();
+	  float x = i->GetClusterPosition() - O_Transfer-xoffset;
+	  float y = j->GetClusterPosition() - yoffset;
+	  gem1.push_back(GEMClusterStruct(x,y,c_x,c_y));
+      }
+  }
+  for( auto &i : cluster_x2)
+  {
+      for(auto &j : cluster_y2)
+      {
+          float c_x = i->GetClusterADCs();
+	  float c_y = j->GetClusterADCs();
+	  float x = O_Transfer - i->GetClusterPosition();
+	  float y = - j->GetClusterPosition() ;
+	  gem2.push_back(GEMClusterStruct(x,y,c_x,c_y));
+      }
+  }
+
+}
+
 
 void GEMZeroHitDecoder::GetClusterBeamLine(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2)
 {
@@ -723,8 +816,8 @@ void GEMZeroHitDecoder::GetClusterBeamLine(vector<GEMClusterStruct> &gem1, vecto
   double z_gem1 = 5300; //mm
   double z_gem2 = 5260; //mm
 
-  double xoffset_gem = -0.3722;
-  double yoffset_gem = 0.1681;
+  double xoffset_gem = -0.3618;
+  double yoffset_gem = 0.1792;
 
   //the above offsets are from the projection on GEM2
   //real GEM1 offsets should be projected back
@@ -732,8 +825,8 @@ void GEMZeroHitDecoder::GetClusterBeamLine(vector<GEMClusterStruct> &gem1, vecto
   yoffset_gem = yoffset_gem*z_gem1/z_gem2;
 
 
-  double xoffset_beam = 1.804;
-  double yoffset_beam = -0.1568;
+  double xoffset_beam = 1.631;
+  double yoffset_beam = -0.366;
 
   if(nbCluster1>0)
   {
@@ -821,137 +914,6 @@ void GEMZeroHitDecoder::GetClusterGEM(vector<GEMClusterStruct> &gem1, vector<GEM
   }
 
 }
-
-/*
-void GEMZeroHitDecoder::GetCluster2DCharge(vector<float> &x1, vector<float> &y1, vector<float> &x2, vector<float> &y2)
-{
-  list<GEMCluster*> cluster_x1 = fListOfClustersZeroFromPlane["pRadGEM1X"];
-  list<GEMCluster*> cluster_y1 = fListOfClustersZeroFromPlane["pRadGEM1Y"];
-  list<GEMCluster*> cluster_x2 = fListOfClustersZeroFromPlane["pRadGEM2X"];
-  list<GEMCluster*> cluster_y2 = fListOfClustersZeroFromPlane["pRadGEM2Y"];
-
-  int s1 = cluster_x1.size();
-  int s2 = cluster_y1.size();
-  int nbCluster1 = (s1<s2)?s1:s2;
-  s1 = cluster_x2.size();
-  s2 = cluster_y2.size();
-  int nbCluster2 = (s1<s2)?s1:s2;
-
-  if(nbCluster1>0)
-  {
-    list<GEMCluster*>::iterator itx = cluster_x1.begin();
-    list<GEMCluster*>::iterator ity = cluster_y1.begin();
-    for(int i = 0;i<nbCluster1;i++)
-    {
-#ifdef CheckChargeRatio
-      //check charge ratio
-      float x_charge = (*itx)->GetClusterADCs();
-      float y_charge = (*ity)->GetClusterADCs();
-      if( (x_charge<100) || (y_charge<100) )
-      {
-        int nx = (*itx)->GetNbOfHits();
-	int ny = (*ity)->GetNbOfHits();
-
-	cout<<"x1 charge: "<<x_charge<<"  y1 charge: "<<y_charge<<endl;
-	cout<<" # of hits in x1 side: "<<nx<<endl;
-	cout<<" # of hits in y1 side: "<<ny<<endl;
-	cout<<"---------------------------------------------"<<endl;
-	  cout<<"cluster...."<<endl;
-	  int snx = (*itx)->GetNbOfHits();
-	  for(int kk=0;kk<snx;kk++)
-	  {
-	    GEMHit* hit = (*itx)->GetHit(kk);
-            int apvidx = hit->GetAPVID(); 
-	    cout<<" plane: "<<hit->GetPlane()<<" fec: "<<((apvidx>>4)&0xf)<<" adc: "<<(apvidx&0xf)<<" stripNo: "<<hit->GetStripNo()<<" abs stripNo: "<<hit->GetAbsoluteStripNo()<<" adc: "<<hit->GetHitADCs()<<endl;
-	    //delete hit;
-	  }
-	  int sny = (*ity)->GetNbOfHits();
-	  for(int kk=0;kk<sny;kk++)
-	  {
-	    GEMHit* hit1 = (*ity)->GetHit(kk);
-	    int apvidy = hit1->GetAPVID();
-	    cout<<" plane: "<<hit1->GetPlane()<<" fec: "<<((apvidy>>4)&0xf)<<" adc: "<<(apvidy&0xf)<<" stripNo: "<<hit1->GetStripNo()<<" abs stripNo: "<<hit1->GetAbsoluteStripNo()<<" adc: "<<hit1->GetHitADCs()<<endl;
-	    //delete hit1;
-	  }
-	cout<<"---------------------------------------------"<<endl;
-        TCanvas *c = new TCanvas("c", "c", 1000, 1000);
-	c->Divide(1,2);
-	TH1F* hx = GetZeroHit("pRadGEM1X");
-        TH1F* hy = GetZeroHit("pRadGEM1Y");
-	c->cd(1);
-	hx->Draw();
-	c->cd(2);
-	hy->Draw();
-	c->Update();
-	getchar();
-	hx->Delete();
-	hy->Delete();
-      }
-#endif
-
-      x1.push_back( (*itx++)->GetClusterADCs() );
-      y1.push_back( (*ity++)->GetClusterADCs() );
-    }
-  }
-
-   if(nbCluster2>0)
-  {
-    list<GEMCluster*>::iterator itx2 = cluster_x2.begin();
-    list<GEMCluster*>::iterator ity2 = cluster_y2.begin();
-    for(int i = 0;i<nbCluster2;i++)
-    {
-#ifdef CheckChargeRatio
-      //check charge ratio
-      float x_charge = (*itx2)->GetClusterADCs();
-      float y_charge = (*ity2)->GetClusterADCs();
-      if( (x_charge<100) || (y_charge<100) )
-      {
-        int nx = (*itx2)->GetNbOfHits();
-	int ny = (*ity2)->GetNbOfHits();
-	cout<<"x2 charge: "<<x_charge<<"  y2 charge: "<<y_charge<<endl;
-	cout<<" # of hits in x2 side: "<<nx<<endl;
-	cout<<" # of hits in y2 side: "<<ny<<endl;
-	cout<<"---------------------------------------------"<<endl;
-	  cout<<"cluster...."<<endl;
-	  int shx = (*itx2)->GetNbOfHits();
-	  for(int kk=0;kk<shx;kk++)
-	  {
-	    GEMHit* hit = (*itx2)->GetHit(kk);
-	    int apvidx = hit->GetAPVID();
-	    cout<<" plane: "<<hit->GetPlane()<<" fec: "<<((apvidx>>4)&0xf)<<" adc: "<<(apvidx&0xf)<<" stripNo: "<<hit->GetStripNo()<<" abs stripNo: "<<hit->GetAbsoluteStripNo()<<" adc: "<<hit->GetHitADCs()<<endl;
-	    //delete hit;
-	  }
-	  int shy = (*ity2)->GetNbOfHits();
-	  for(int kk=0;kk<shy;kk++)
-	  {
-	    GEMHit* hit1 = (*ity2)->GetHit(kk);
-	    int apvidy = hit1->GetAPVID();
-	    cout<<" plane: "<<hit1->GetPlane()<<" fec: "<<((apvidy>>4)&0xf)<<" adc: "<<(apvidy&0xf)<<" stripNo: "<<hit1->GetStripNo()<<" abs stripNo: "<<hit1->GetAbsoluteStripNo()<<" adc: "<<hit1->GetHitADCs()<<endl;
-	    //delete hit1;
-	  }
-	cout<<"---------------------------------------------"<<endl;
-        TCanvas *c = new TCanvas("c", "c", 1000, 1000);
-	c->Divide(1,2);
-	TH1F* hx2 = GetZeroHit("pRadGEM2X");
-        TH1F* hy2 = GetZeroHit("pRadGEM2Y");
-	c->cd(1);
-	hx2->Draw();
-	c->cd(2);
-	hy2->Draw();
-	c->Update();
-
-	getchar();
-	hx2->Delete();
-	hy2->Delete();
-      }
-#endif
-      x2.push_back( (*itx2++)->GetClusterADCs() );
-      y2.push_back( (*ity2++)->GetClusterADCs() );
-    }
-  }
-
-}
-*/
 
 void GEMZeroHitDecoder::FillHistos(TH1F* hNbClusterPerPlaneX[], TH1F* hNbClusterPerPlaneY[], TH1F* hClusterDistX[], TH1F* hClusterDistY[])
 {

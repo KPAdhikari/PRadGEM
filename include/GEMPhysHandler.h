@@ -117,6 +117,7 @@ private:
   //vector<HyCalHit>  HyCalHit; 
   double totalEnergyDeposit;
   double beamEnergy;
+  double beamEnergyCut;
 
   //compute intersection points between two moller events
   float px1, py1, px2, py2;
@@ -126,8 +127,7 @@ private:
 
   // coordinate transfer
   // origin moved from chamber center to beam hole area
-  /*
-   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  /* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    * overlapping area: 44mm
    * x side length: 550.4
    * overlapping area starting with: 550.4/2 -44 = 231.2
@@ -136,11 +136,14 @@ private:
    *    transfered distance: 550.4/2 - 44/2 = 253.2
    *    GEM1 coordinate transfer: x1 = x1 - 253.2; y1 = y1
    *    GEM2 coordinate transfer: x2 = 253.2 - x2; y2 = -y2
-   * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   */
-
+   *xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx*/
   float O_Transfer;
   float OverlapStart;
+
+  float Z_gem1;
+  float Z_gem2;
+  float Z_hycal;
+  float Delta;
 
   // save results
   fstream outfile;

@@ -220,6 +220,9 @@ void GEMHistoManager::BookHistos()
   hhEnergyVsAngle = new TH2F("hhEnergyVsAngle", "Energy Angle", 1000, 0, 10, 4000, 0, 2500);
   hhEnergyVsAngle -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
   hhEnergyVsAngle -> GetYaxis() -> SetTitle("  energy [MeV] "); 
+  hhEnergyVsAngleEnergyCut = new TH2F("hhEnergyVsAngleEnergyCut", "Energy Angle", 1000, 0, 10, 4000, 0, 2500);
+  hhEnergyVsAngleEnergyCut -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
+  hhEnergyVsAngleEnergyCut -> GetYaxis() -> SetTitle("  energy [MeV] "); 
 
   hhEnergyVsAngleBeamLineCorrection = new TH2F("hhEnergyVsAngleBeamLineCorrection", "Energy Angle beam line correction", 1000, 0, 10, 4000, 0, 2500);
   hhEnergyVsAngleBeamLineCorrection -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
@@ -229,10 +232,17 @@ void GEMHistoManager::BookHistos()
   hhEnergyVsAngleEp = new TH2F("hhEnergyVsAngleEp", "Energy Angle ep", 1000, 0, 10, 4000, 0, 2500);
   hhEnergyVsAngleEp -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
   hhEnergyVsAngleEp -> GetYaxis() -> SetTitle("  energy [MeV] "); 
+  hhEnergyVsAngleEpEnergyCut = new TH2F("hhEnergyVsAngleEpEnergyCut", "Energy Angle ep", 1000, 0, 10, 4000, 0, 2500);
+  hhEnergyVsAngleEpEnergyCut -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
+  hhEnergyVsAngleEpEnergyCut -> GetYaxis() -> SetTitle("  energy [MeV] "); 
 
   hhEnergyVsAngleMoller = new TH2F("hhEnergyVsAngleMoller", "Energy Angle Moller", 1000, 0, 10, 4000, 0, 2500);
   hhEnergyVsAngleMoller -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
   hhEnergyVsAngleMoller -> GetYaxis() -> SetTitle("  energy [MeV] "); 
+  hhEnergyVsAngleMollerEnergyCut = new TH2F("hhEnergyVsAngleMollerEnergyCut", "Energy Angle Moller", 1000, 0, 10, 4000, 0, 2500);
+  hhEnergyVsAngleMollerEnergyCut -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
+  hhEnergyVsAngleMollerEnergyCut -> GetYaxis() -> SetTitle("  energy [MeV] "); 
+
 
   hhEnergyVsAngleMollerBeamLineCorrection = new TH2F("hhEnergyVsAngleMollerBeamLineCorrection", "Energy Angle Moller beam line correction", 1000, 0, 10, 4000, 0, 2500);
   hhEnergyVsAngleMollerBeamLineCorrection -> GetXaxis() -> SetTitle("  scattering angle [degree] "); 
