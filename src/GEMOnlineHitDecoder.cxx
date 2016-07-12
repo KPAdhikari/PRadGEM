@@ -36,7 +36,7 @@ GEMOnlineHitDecoder::GEMOnlineHitDecoder(uint32_t *rbuf, int Size, GEMPedestal *
   FECs = fMapping->GetBankIDSet();
  
   // cluster information  
-  fMinClusterSize = 2;
+  fMinClusterSize = 1;
   fMaxClusterSize = 20;
   //fIsClusterMaxOrTotalADCs = "totalADCs";
   fIsClusterMaxOrTotalADCs = "maximumADCs";
@@ -928,13 +928,6 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
   list<GEMCluster*> cluster_x2 = fListOfClustersCleanFromPlane["pRadGEM2X"];
   list<GEMCluster*> cluster_y2 = fListOfClustersCleanFromPlane["pRadGEM2Y"];
 
-  int s1 = cluster_x1.size();
-  int s2 = cluster_y1.size();  
-  int nbCluster1 = (s1<s2)?s1:s2;
-  s1 = cluster_x2.size();
-  s2 = cluster_y2.size();
-  int nbCluster2 = (s1<s2)?s1:s2;
-
   /*
    * Do the coordinate convert here
    * Convert GEM coordinate to HyCal coordinate
@@ -959,11 +952,6 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
   double z_gem1 = 5300; //mm
   double z_gem2 = 5260; //mm
 
-
-  // cutting edge
-  //float edge1 = 0;
-  //float edge2 = 0;
-
   // offset from data
   double xoffset = -0.3618;
   double yoffset = 0.1792;
@@ -973,40 +961,27 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
   xoffset = xoffset*z_gem1/z_gem2;
   yoffset = yoffset*z_gem1/z_gem2;
 
-  if(nbCluster1>0)
+  for( auto &i : cluster_x1)
   {
-    list<GEMCluster*>::iterator itx = cluster_x1.begin();
-    list<GEMCluster*>::iterator ity = cluster_y1.begin();
-    for(int i = 0;i<nbCluster1;i++)
-    {
-      //if(((*itx)->GetClusterPosition() -xoffset -O_Transfer) <= edge1) 
-      // remove overlapping area on GEM1, use the corresponding area on GEM2
-      // do not use edge as the cut line. choose some arbitrary line and find the corresponding line on GEM2
+      for(auto &j : cluster_y1)
       {
-        float c_x = (*itx)->GetClusterADCs();
-	float c_y = (*ity)->GetClusterADCs();
-	float x = ((*itx++)->GetClusterPosition()) -O_Transfer -xoffset;
-	float y = (*ity++)->GetClusterPosition() -yoffset; 
-	gem1.push_back(GEMClusterStruct(x, y, c_x, c_y));
+          float c_x = i->GetClusterADCs();
+	  float c_y = j->GetClusterADCs();
+	  float x = i->GetClusterPosition() - O_Transfer-xoffset;
+	  float y = j->GetClusterPosition() - yoffset;
+	  gem1.push_back(GEMClusterStruct(x,y,c_x,c_y));
       }
-    }
   }
-
-   if(nbCluster2>0)
+  for( auto &i : cluster_x2)
   {
-    list<GEMCluster*>::iterator itx2 = cluster_x2.begin();
-    list<GEMCluster*>::iterator ity2 = cluster_y2.begin();
-    for(int i = 0;i<nbCluster2;i++)
-    {
-      //if( ( O_Transfer - ((*itx2)->GetClusterPosition())  ) > edge2)
+      for(auto &j : cluster_y2)
       {
-        float c_x = (*itx2)->GetClusterADCs();
-	float c_y = (*ity2)->GetClusterADCs();
-	float x =  O_Transfer - ((*itx2++)->GetClusterPosition());
-	float y = -(*ity2++)->GetClusterPosition(); 
-	gem2.push_back(GEMClusterStruct(x, y, c_x, c_y));
+          float c_x = i->GetClusterADCs();
+	  float c_y = j->GetClusterADCs();
+	  float x = O_Transfer - i->GetClusterPosition();
+	  float y = - j->GetClusterPosition() ;
+	  gem2.push_back(GEMClusterStruct(x,y,c_x,c_y));
       }
-    }
   }
 
 }

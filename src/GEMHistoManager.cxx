@@ -250,7 +250,7 @@ void GEMHistoManager::BookHistos()
   hYOffsetFromMoller -> GetXaxis()->SetTitle(" x offset [mm] "); 
   hYOffsetFromMoller -> GetYaxis()->SetTitle(" entries "); 
  
-  hhMollerCenter = new TH2F("hhMollerCenter", "Moller Center", 1000, -50, 50, 1000, -50, 50);
+  hhMollerCenter = new TH2F("hhMollerCenter", "Moller Center", 2000, -100, 100, 2000, -100, 100);
   hhMollerCenter -> GetXaxis() -> SetTitle(" x [mm] "); 
   hhMollerCenter -> GetYaxis() -> SetTitle(" x [mm] "); 
  
@@ -262,7 +262,7 @@ void GEMHistoManager::BookHistos()
   hYOffsetFromSymmetricMoller -> GetXaxis()->SetTitle(" x offset [mm] "); 
   hYOffsetFromSymmetricMoller -> GetYaxis()->SetTitle(" entries "); 
  
-  hhSymmetricMollerCenter = new TH2F("hhSymmetricMollerCenter", "Moller Center", 1000, -50, 50, 1000, -50, 50);
+  hhSymmetricMollerCenter = new TH2F("hhSymmetricMollerCenter", "Moller Center", 2000, -100, 100, 2000, -100, 100);
   hhSymmetricMollerCenter -> GetXaxis() -> SetTitle(" x [mm] "); 
   hhSymmetricMollerCenter -> GetYaxis() -> SetTitle(" x [mm] "); 
  
@@ -333,12 +333,12 @@ void GEMHistoManager::BookHistos()
   hYDiffMatch -> GetYaxis() -> SetTitle(" entries "); 
 
   hhXDiffMatchVsEnergy = new TH2F("hhXDiffMatch", "x diff. vs energy", 2500, 0, 2500, 1000, -60, 60);
-  hhXDiffMatchVsEnergy -> GetXaxis() -> SetTitle(" #Delta X [mm] "); 
-  hhXDiffMatchVsEnergy -> GetYaxis() -> SetTitle(" energy [MeV]  "); 
+  hhXDiffMatchVsEnergy -> GetYaxis() -> SetTitle(" #Delta X [mm] "); 
+  hhXDiffMatchVsEnergy -> GetXaxis() -> SetTitle(" energy [MeV]  "); 
 
   hhYDiffMatchVsEnergy = new TH2F("hhYDiffMatch", "y diff. vs energy", 2500, 0, 2500, 1000, -60, 60);
-  hhYDiffMatchVsEnergy -> GetXaxis() -> SetTitle(" #Delta Y [mm] "); 
-  hhYDiffMatchVsEnergy -> GetYaxis() -> SetTitle(" energy [MeV]  "); 
+  hhYDiffMatchVsEnergy -> GetYaxis() -> SetTitle(" #Delta Y [mm] "); 
+  hhYDiffMatchVsEnergy -> GetXaxis() -> SetTitle(" energy [MeV]  "); 
 
   hNbPointsMatch = new TH1F("hNbPointsMatch", "# cluster match", 100, -1.5, 98.5);
   hNbPointsMatch -> GetXaxis() -> SetTitle("clusuter quantity after match per event"); 

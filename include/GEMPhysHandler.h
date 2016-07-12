@@ -81,7 +81,8 @@ private:
   string filename;
   ifstream file;
 
-  int nElectron;  // tdc 126 or 127 cut, converted events number
+  int nElectron;  
+  // tdc 126 or 127 cut, converted events number
   int nElectron_126;
   int nElectron_127;
   int neff;
@@ -91,6 +92,14 @@ private:
   int nHyCalEvents;
   // totoal number of events 
   int nTotalEvents;
+
+  // calculte gem efficiency using ep 
+  // and moller events from production
+  // runs, during the matching process
+  double GEMMollerElectronQuantity;
+  double HyCalMollerElectronQuantity;
+  double GEMEpElectronQuantity;
+  double HyCalEpElectronQuantity;
 
   GEMRawDecoder *fRawDecoder;
   GEMConfigure config;

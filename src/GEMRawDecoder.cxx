@@ -120,7 +120,9 @@ void GEMRawDecoder::Decode()
   //fs<<"#################"<<endl;
  
   //for debug
-  assert( ((buf[0] >> 8) & 0xffffff) != 0x414443  );
+  //assert( ((buf[0] >> 8) & 0xffffff) != 0x414443  );
+  if(  ((buf[0] >> 8) & 0xffffff) == 0x414443 )
+      return;
 
   fec_margin.clear();
   apv_margin.clear();
@@ -147,7 +149,9 @@ void GEMRawDecoder::Decode()
     cout<<"GEM Raw Decoder: No SRS Data Receved..."<<endl;
   }
 
-  assert( buf[fec_margin[nFecMargin-1]]==0xfafafafa);
+  //assert( buf[fec_margin[nFecMargin-1]]==0xfafafafa);
+  if( buf[fec_margin[nFecMargin-1]]!=0xfafafafa )
+      return;
 
   for(int ii = 0;ii<=nFecMargin-2;ii++)
   {
@@ -164,7 +168,9 @@ void GEMRawDecoder::Decode()
 
     int nMargin = apv_margin.size();
     //cout<<"Number of APVs:   "<<nMargin-1<<endl;
-    assert( buf[apv_margin[nMargin-1]] == 0xfafafafa  );
+    //assert( buf[apv_margin[nMargin-1]] == 0xfafafafa  );
+    if( buf[apv_margin[nMargin-1]] != 0xfafafafa )
+        return;
 
     for(int i=0;i<=nMargin-2;i++)
     {

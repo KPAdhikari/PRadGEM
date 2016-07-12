@@ -54,6 +54,11 @@ GEMPhysHandler::GEMPhysHandler()
     // # of gem events
     // after filter by hycal
     neff_after_match = 0;
+    
+    GEMMollerElectronQuantity = 0.;
+    HyCalMollerElectronQuantity = 0.;
+    GEMEpElectronQuantity = 0.;
+    HyCalEpElectronQuantity = 0.;
 
     vSRSSingleEventData.clear();
     vSRSZeroEventData.clear();
@@ -165,6 +170,16 @@ void GEMPhysHandler::ProcessAllFiles()
     // Save Histos
     SavePhysResults();
 
+    outfile<<"<><><><><><><>"<<endl;
+    outfile<<"Overall Detector Efficiency in producton runs:"
+           <<endl;
+    outfile<<"Moller Events Efficiency: "
+           <<GEMMollerElectronQuantity/HyCalMollerElectronQuantity
+	   <<endl;
+    outfile<<"e-p Events Efficiency: "
+           <<GEMEpElectronQuantity/HyCalEpElectronQuantity
+	   <<endl;
+
 #ifdef TDC_CHECK_EFFICIENCY
     outfile<<endl<<endl;
     double eff_real = (double)neff/nElectron;
@@ -196,6 +211,12 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     double neff_previous_after_match = neff_after_match;
     double nElectron_previous = nElectron;
     double ntrigger_current_file = 0.0; // for detector efficiency
+
+    //for detector efficiency in producton run
+    double hycal_moller_quantity_previous = HyCalMollerElectronQuantity;
+    double hycal_ep_quantity_previous = HyCalEpElectronQuantity;
+    double gem_moller_quantity_previous = GEMMollerElectronQuantity;
+    double gem_ep_quantity_previous = GEMEpElectronQuantity;
 
     PRadBenchMark timer;
 
@@ -393,6 +414,17 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
     double eff_after_match = (double)(neff_after_match-neff_previous_after_match)/ntrigger_current_file;
     outfile<<"photon conversion rate in single file: "<<eff<<endl;
     outfile<<"photon conversion rate in single file after match: "<<eff_after_match<<endl;
+    outfile<<"<><><><><><><><>"
+           <<endl;
+    outfile<<"Single File GEM Efficiency in producton runs: "
+           <<endl;
+    outfile<<"moller events efficiency: "
+           <<(GEMMollerElectronQuantity - gem_moller_quantity_previous) / (HyCalMollerElectronQuantity - hycal_moller_quantity_previous)
+	   <<endl;
+    outfile<<"ep events efficiency: "
+           <<(GEMEpElectronQuantity - gem_ep_quantity_previous) / (HyCalEpElectronQuantity - hycal_ep_quantity_previous)
+	   <<endl;
+
 
 #ifdef TDC_CHECK_EFFICIENCY
     double eff_real = (double)(neff-neff_previous)/(nElectron-nElectron_previous);
@@ -872,7 +904,7 @@ template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
 		    px2 = cx2;
 		    py2 = cy2;
 		    cx1 = gem[0].x;
-		    cx2 = gem[1].y;
+		    cx2 = gem[1].x;
 		    cy1 = gem[0].y;
 		    cy2 = gem[1].y;
 
@@ -1462,6 +1494,7 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
 	float m_e = 0;
 
 	// search GEM1
+	res = 60.;
 	int n = gem1.size();
 	if(n > 0)
 	{
@@ -1483,6 +1516,7 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEM
 	}
 
 	//continue search GEM2
+	res = 60.;
 	n = gem2.size();
 	if(n>0)
 	{
@@ -1562,10 +1596,20 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     double z_gem1 = 5300; //mm
     double z_gem2 = 5260; //mm
     double z_hycal = 5820; //mm
-    double res = 60; // a larger range, 60mm
+    double res = 60.; // a larger range, 60mm
 
     vector<GEMClusterStruct> res_gem1;
     vector<GEMClusterStruct> res_gem2;
+
+    // gem efficiency in production runs
+    if( (pHHit->size() == 2) && ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
+    {
+       HyCalMollerElectronQuantity += 2.0;
+    }
+    if( (pHHit->size() == 1) && ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
+    {
+       HyCalEpElectronQuantity += 1.0;
+    }
 
     int nh = pHHit->size();
     for(int i=0;i<nh;i++)
@@ -1581,11 +1625,12 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	double y_project = 0.;
 
 	// search GEM1
+	res = 60.;
 	int n = gem1.size();
 	if(n > 0)
 	{
-	    double x_hycal = (pHHit->at(i).x) *z_gem1/z_hycal;
-	    double y_hycal = (pHHit->at(i).y) *z_gem1/z_hycal;
+	    double x_hycal = (pHHit->at(i).x)*z_gem1/z_hycal;
+	    double y_hycal = (pHHit->at(i).y)*z_gem1/z_hycal;
 	    for(int j=0;j<n;j++)
 	    {
                 dr = TMath::Sqrt((x_hycal - gem1[j].x)*(x_hycal - gem1[j].x)+
@@ -1605,6 +1650,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	}
 
 	//continue search GEM2
+	res = 60.;
 	n = gem2.size();
 	if(n>0)
 	{
@@ -1702,6 +1748,17 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 
     hNbPointsMatch->Fill( res_gem1.size() + res_gem2.size() );
     hQuantityOfClustersGEMAfterMatch->Fill( res_gem1.size() + res_gem2.size() );
+
+    // gem efficiency in production runs
+    if( (pHHit->size() == 2) && ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
+    {
+       GEMMollerElectronQuantity += res_gem1.size() + res_gem2.size();
+    }
+    if( (pHHit->size() == 1) && ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
+    {
+       GEMEpElectronQuantity += res_gem1.size() + res_gem2.size();
+    }
+
 }
 
 
