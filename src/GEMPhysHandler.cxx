@@ -123,8 +123,8 @@ GEMPhysHandler::GEMPhysHandler()
     Z_hycal= 5600.;//mm
     Delta = 60.0;
     //Z_hycal = 5820;//mm
-    beamEnergy = 2.147;//GeV
-    //beamEnergy = 1.1;//GeV
+    //beamEnergy = 2.147;//GeV
+    beamEnergy = 1.1;//GeV
     // 3% energy resolution 5 sigma
     beamEnergyCut = beamEnergy * 0.85 * 1000; //MeV
 
