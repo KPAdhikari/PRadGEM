@@ -13,7 +13,10 @@ Source  := main.cxx \
 	   GEMZeroHitDecoder.cxx \
 	   GEMConfigure.cxx \
 	   GEMHistoManager.cxx \
-	   GEMPhysHandler.cxx
+	   GEMPhysHandler.cxx \
+	   PRadGEMTree.cxx \
+           GEMDataStruct.cxx \
+           GEMDict.cxx
 
 OBJDIR 	:= ./obj
 
@@ -37,14 +40,18 @@ incfile := -I/home/xbai/w/coda/common/include -I/home/xbai/w/pRad/source/PRadDec
 #flags   := -O3 -std=c++11 $(glibs) $(cflags) $(incfile) -L${PWD}/../../GemView/evio/lib64 -levio -levioxx -lexpat -L/work/prad/xbai/PRadDecoder/lib -lPRadDecoder
 flags   := -O3 -std=c++11 $(glibs) $(cflags) $(incfile) -L/home/xbai/w/coda/Linux-x86_64/lib -levio -levioxx -lexpat -L/home/xbai/w/pRad/source/PRadDecoder/lib -lPRadDecoder
 
-
 $(Target) : $(OBJS)
 	@$(cc) -o $(Target) $(OBJS) $(flags)
 
-$(OBJDIR)/%.o: ./src/%.cxx 
+$(OBJDIR)/%.o: ./src/%.cxx ./src/GEMDict.cxx
 	@echo Compiling $< ...
 	@$(cc) -c $< -o $@ $(flags)
+
+#generate dictionary for data struct
+src/GEMDict.cxx:
+	rootcint -f $@ -c -I./include GEMDataStruct.h LinkDef.h
 
 clean:
 	@rm -f $(Target)
 	@rm -f $(OBJDIR)/*.o
+	@rm -f src/GEMDict.cxx src/GEMDict_rdict.pcm

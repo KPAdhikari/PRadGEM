@@ -40,6 +40,7 @@
 #include "PRadDataHandler.h"
 #include "PRadEvioParser.h"
 
+class PRadGEMTree;
 class PRadReconstructor;
 
 class GEMPhysHandler : public GEMHistoManager
@@ -91,7 +92,7 @@ private:
   int nScinEvents;
   int nHyCalEvents;
   // totoal number of events 
-  int nTotalEvents;
+  unsigned long nTotalEvents;
 
   // calculte gem efficiency using ep 
   // and moller events from production
@@ -147,6 +148,7 @@ private:
 
   // save results
   fstream outfile;
+  PRadGEMTree *rst_tree;
 
 };
 

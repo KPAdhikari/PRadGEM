@@ -5,6 +5,7 @@
 #include "PRadReconstructor.h"
 #include "PRadTDCGroup.h"
 #include "PRadBenchMark.h"
+#include "PRadGEMTree.h"
 #include <fstream>
 
 using namespace std;
@@ -32,6 +33,7 @@ GEMPhysHandler::GEMPhysHandler()
     if( !outfile.is_open() )
 	cout<<"Error: cannot open run_log file..."
 	    <<endl;
+    rst_tree = new PRadGEMTree();
 
     fRawDecoder = 0;
 
@@ -255,6 +257,9 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 		{
 		    hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);
 		}
+
+              // hycal cluster for tree
+              HyCalClusterStruct cluster = HyCalClusterStruct(pHyCalHit->at(i).x, pHyCalHit->at(i).y, pHyCalHit->at(i).E);
 	    }
 
 	    vSRSSingleEventData.clear();
@@ -1243,6 +1248,8 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 
     vector<GEMClusterStruct> gem1, gem2;
     hit_decoder->GetClusterGEM(gem1, gem2);
+   
+    rst_tree -> Fill(nTotalEvents, gem1, gem2, *pHyCalHit);
 
     if(gem1.size() > 0)
     {
@@ -1262,6 +1269,8 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 		outfile<<"x1 negative charge???"<<endl;;
 	    if( gem1[i].y_charge<0)
 		outfile<<"y1 negative charge???"<<endl;;
+
+	    // save tree 
 	}
     }
 
@@ -1279,12 +1288,17 @@ template<class T> void GEMPhysHandler::CharactorizeGEM(T * hit_decoder)
 		outfile<<"x2 negative charge???"<<endl;
 	    if( gem2[i].y_charge<0)
 		outfile<<"y2 negative charge???"<<endl;
+
+             // save tree
 	}
     }
 }
 
 void GEMPhysHandler::SavePhysResults()
 {
+    // save root 
+    rst_tree -> Save();
+
     const char *str = config.phys_results_path.c_str();
     TFile *f = new TFile(str, "recreate");
 
