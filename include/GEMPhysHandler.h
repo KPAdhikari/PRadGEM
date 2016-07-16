@@ -115,7 +115,6 @@ private:
   TH1F* hTimeDiff;
   double timing_test;
   vector<HyCalHit> * pHyCalHit;  
-  //vector<HyCalHit>  HyCalHit; 
   double totalEnergyDeposit;
   double beamEnergy;
   double beamEnergyCut;

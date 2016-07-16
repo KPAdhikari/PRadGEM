@@ -47,7 +47,9 @@ public:
   void ComputeClusters();
   void ComputeClustersFineTune();
   void DeleteClustersInPlaneMap() ;
-  map < TString, list <GEMCluster * > > GetListOfClustersFromPlanes() { return  fListOfClustersZeroFromPlane;  }
+  map < TString, list <GEMCluster * > > GetListOfClustersFromPlanes() { 
+      return  fListOfClustersZeroFromPlane;  
+  }
  
   TH1F* GetCluster(TString str);
 

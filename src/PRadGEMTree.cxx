@@ -24,7 +24,10 @@ PRadGEMTree::PRadGEMTree()
 PRadGEMTree::~PRadGEMTree()
 {}
 
-void PRadGEMTree::Fill(const unsigned long &index, const std::vector<GEMClusterStruct> &gem1 , const std::vector<GEMClusterStruct> &gem2, const std::vector<HyCalHit> &hycal)
+void PRadGEMTree::Fill(const unsigned long &index, 
+                       const std::vector<GEMClusterStruct> &gem1 , 
+		       const std::vector<GEMClusterStruct> &gem2, 
+		       const std::vector<HyCalHit> &hycal)
 {
     a_gem1->Clear();
     a_gem2->Clear();

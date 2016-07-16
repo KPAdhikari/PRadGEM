@@ -112,7 +112,7 @@ class GEMHitDecoder {
   map < TString, list <GEMHit * > > fListOfHitsFromPlane ;
 
 private:
-  // xb added
+  // xb 
   Int_t NCH;
   GEMPedestal *ped;
 
@@ -121,7 +121,7 @@ private:
   set<int> FECs; //FEC ID
 
 public:
-  // xb added for debug
+  // xb for debug
   void ShowHits();
 
   //ClassDef(GEMHitDecoder,3);

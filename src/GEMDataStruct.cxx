@@ -1,3 +1,9 @@
+//==========================//
+//                          // 
+// Xinzhan Bai              //
+// 07/16/2016               //
+//==========================//
+
 #include "GEMDataStruct.h"
 
 ClassImp(GEMClusterStruct)

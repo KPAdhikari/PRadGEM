@@ -58,14 +58,11 @@ public:
   void SaveMapping(const char * mappingCfgFilename);
 
   void LoadMapping(const char * mappingCfgFilename);
-  //void LoadAPVtoPadMapping(const char * mappingCfgFilename);
 
   void SetAPVMap(TString detPlane, Int_t fecId, Int_t adcCh, Int_t apvNo, Int_t apvOrient, Int_t apvIndex, Int_t apvHdr, TString defaultAPV) ;
-  //void SetAPVtoPadMapping(Int_t fecId, Int_t adcCh, Int_t padId, Int_t apvCh) ;
   void SetCartesianStripsReadoutMap(TString readoutBoard, TString detectorType, TString detector, Int_t detID, TString planeX,  Float_t sizeX, Int_t connectorsX, Int_t orientX, TString planeY,  Float_t sizeY, Int_t connectorsY, Int_t orientY) ;
 
   Int_t GetPRadStripMapping(Int_t apvID, Int_t chNo) ;
-  //This function disabled by Xb
 
   void ComputeActiveADCchannelsMap() ;
   vector <Int_t> GetActiveADCchannels(Int_t fecID) {return fActiveADCchannelsMap[fecID];}

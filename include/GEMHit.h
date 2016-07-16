@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
-//#include "linkdef.h"
 #include "TList.h"
 #include "TObject.h"
 #include "TMath.h"
