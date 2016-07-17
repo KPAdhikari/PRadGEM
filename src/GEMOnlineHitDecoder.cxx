@@ -895,9 +895,14 @@ void GEMOnlineHitDecoder::GetClusterHyCalCutMode(vector<GEMClusterStruct> &gem1,
       {
         float c_x = (*itx)->GetClusterADCs();
 	float c_y = (*ity)->GetClusterADCs();
-	float x = (*itx++)->GetClusterPosition() -O_Transfer -xoffset;
-	float y = (*ity++)->GetClusterPosition() -yoffset; 
-	gem1.push_back(GEMClusterStruct(x, y, c_x, c_y));
+	float x = (*itx)->GetClusterPosition() -O_Transfer -xoffset;
+	float y = (*ity)->GetClusterPosition() -yoffset; 
+        GEMClusterStruct cluster(x, y, c_x, c_y);
+        cluster.x_size = (*itx)->GetNbOfHits();
+        cluster.y_size = (*ity)->GetNbOfHits();
+	gem1.push_back(cluster);
+        *itx++;
+        *ity++;
       }
     }
   }
@@ -912,9 +917,14 @@ void GEMOnlineHitDecoder::GetClusterHyCalCutMode(vector<GEMClusterStruct> &gem1,
       {
         float c_x = (*itx2)->GetClusterADCs();
 	float c_y = (*ity2)->GetClusterADCs();
-	float x = O_Transfer - ((*itx2++)->GetClusterPosition()); 
-	float y =  -(*ity2++)->GetClusterPosition(); 
-	gem2.push_back(GEMClusterStruct(x, y, c_x, c_y));
+	float x = O_Transfer - ((*itx2)->GetClusterPosition()); 
+	float y =  -(*ity2)->GetClusterPosition(); 
+	GEMClusterStruct cluster(x, y, c_x, c_y);
+	cluster.x_size = (*itx2)->GetNbOfHits();
+	cluster.y_size = (*ity2)->GetNbOfHits();
+	gem2.push_back(cluster);
+	itx2++;
+	ity2++;
       }
     }
   }
@@ -969,7 +979,10 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
 	  float c_y = j->GetClusterADCs();
 	  float x = i->GetClusterPosition() - O_Transfer-xoffset;
 	  float y = j->GetClusterPosition() - yoffset;
-	  gem1.push_back(GEMClusterStruct(x,y,c_x,c_y));
+	  GEMClusterStruct cluster(x,y,c_x,c_y);
+          cluster.x_size = i->GetNbOfHits();
+	  cluster.y_size = j->GetNbOfHits();
+	  gem1.push_back(cluster);
       }
   }
   for( auto &i : cluster_x2)
@@ -980,7 +993,10 @@ void GEMOnlineHitDecoder::GetClusterHyCalPlusMode(vector<GEMClusterStruct> &gem1
 	  float c_y = j->GetClusterADCs();
 	  float x = O_Transfer - i->GetClusterPosition();
 	  float y = - j->GetClusterPosition() ;
-	  gem2.push_back(GEMClusterStruct(x,y,c_x,c_y));
+	  GEMClusterStruct cluster(x,y,c_x,c_y);
+	  cluster.x_size = i->GetNbOfHits();
+	  cluster.y_size = j->GetNbOfHits();
+	  gem2.push_back(cluster);
       }
   }
 
@@ -1057,9 +1073,14 @@ void GEMOnlineHitDecoder::GetClusterBeamLine(vector<GEMClusterStruct> &gem1, vec
       {
         float c_x = (*itx)->GetClusterADCs();
 	float c_y = (*ity)->GetClusterADCs();
-	float x = ((*itx++)->GetClusterPosition()) -O_Transfer - xoffset_gem - xoffset_beam;
-	float y = (*ity++)->GetClusterPosition() -yoffset_gem - yoffset_beam;
-	gem1.push_back(GEMClusterStruct(x, y, c_x, c_y));
+	float x = ((*itx)->GetClusterPosition()) -O_Transfer - xoffset_gem - xoffset_beam;
+	float y = (*ity)->GetClusterPosition() -yoffset_gem - yoffset_beam;
+	GEMClusterStruct cluster(x, y, c_x, c_y);
+	cluster.x_size = (*itx)->GetNbOfHits();
+	cluster.y_size = (*ity)->GetNbOfHits();
+	gem1.push_back(cluster);
+	itx++;
+	ity++;
       }
     }
   }
@@ -1074,9 +1095,14 @@ void GEMOnlineHitDecoder::GetClusterBeamLine(vector<GEMClusterStruct> &gem1, vec
       {
         float c_x = (*itx2)->GetClusterADCs();
 	float c_y = (*ity2)->GetClusterADCs();
-	float x = O_Transfer - ((*itx2++)->GetClusterPosition()) - xoffset_beam;
-	float y =  -(*ity2++)->GetClusterPosition()  - yoffset_beam;
-	gem2.push_back(GEMClusterStruct(x, y, c_x, c_y));
+	float x = O_Transfer - ((*itx2)->GetClusterPosition()) - xoffset_beam;
+	float y =  -(*ity2)->GetClusterPosition()  - yoffset_beam;
+	GEMClusterStruct cluster(x, y, c_x, c_y);
+	cluster.x_size = (*itx2)->GetNbOfHits();
+	cluster.y_size = (*ity2)->GetNbOfHits();
+	gem2.push_back(cluster);
+	itx2++;
+	ity2++;
       }
     }
   }
@@ -1105,9 +1131,14 @@ void GEMOnlineHitDecoder::GetClusterGEM(vector<GEMClusterStruct> &gem1, vector<G
     {
       float c_x = (*itx)->GetClusterADCs();
       float c_y = (*ity)->GetClusterADCs();
-      float x = (*itx++)->GetClusterPosition();
-      float y = (*ity++)->GetClusterPosition(); 
-      gem1.push_back(GEMClusterStruct(x, y, c_x, c_y));
+      float x = (*itx)->GetClusterPosition();
+      float y = (*ity)->GetClusterPosition(); 
+      GEMClusterStruct cluster(x, y, c_x, c_y);
+      cluster.x_size = (*itx)->GetNbOfHits();
+      cluster.y_size = (*ity)->GetNbOfHits();
+      gem1.push_back(cluster);
+      itx++;
+      ity++;
     }
   }
 
@@ -1119,9 +1150,14 @@ void GEMOnlineHitDecoder::GetClusterGEM(vector<GEMClusterStruct> &gem1, vector<G
     {
       float c_x = (*itx2)->GetClusterADCs();
       float c_y = (*ity2)->GetClusterADCs();
-      float x =  (*itx2++)->GetClusterPosition() ; 
-      float y =  (*ity2++)->GetClusterPosition() ; 
-      gem2.push_back(GEMClusterStruct(x, y, c_x, c_y));
+      float x =  (*itx2)->GetClusterPosition() ; 
+      float y =  (*ity2)->GetClusterPosition() ; 
+      GEMClusterStruct cluster(x, y, c_x, c_y);
+      cluster.x_size = (*itx2)->GetNbOfHits();
+      cluster.y_size = (*ity2)->GetNbOfHits();
+      gem2.push_back(cluster);
+      itx2++;
+      ity2++;
     }
   }
 

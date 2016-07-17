@@ -72,10 +72,10 @@ void GEMHistoManager::BookHistos()
     TString clusterdistNameY = detectorName+"_YClusterPos";
     TString clusterdistTitleX = detectorName+"_X Cluster Dist";
     TString clusterdistTitleY = detectorName+"_Y Cluster Dist";
-    TString nbclusterNameX = detectorName+"_XClusterSize";
-    TString nbclusterNameY = detectorName+"_YClusterSize";
-    TString nbclusterTitleX = detectorName+"_X Cluster Size";
-    TString nbclusterTitleY = detectorName+"_Y Cluster Size";
+    TString nbclusterNameX = detectorName+"_XCluster Quantity";
+    TString nbclusterNameY = detectorName+"_YCluster Quantity";
+    TString nbclusterTitleX = detectorName+"_X Cluster Quantity";
+    TString nbclusterTitleY = detectorName+"_Y Cluster Quantity";
 
     hNbClusterPerPlaneX[i] = new TH1F(nbclusterNameX, nbclusterTitleX, 100, 0, 100);
     hNbClusterPerPlaneX[i] -> GetXaxis() -> SetTitle("cluster quantity per event on x side");

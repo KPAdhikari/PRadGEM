@@ -12,6 +12,8 @@ public:
     float y_charge;
     float energy;
     float z;
+    int x_size;
+    int y_size;
 
     GEMClusterStruct();
     ~GEMClusterStruct();
@@ -19,12 +21,21 @@ public:
     GEMClusterStruct(float xi, float yi, 
                float cix = 0., float ciy = 0., 
 	       float ei = 0) 
-    : x(xi), y(yi), x_charge(cix), y_charge(ciy), energy(ei) {}
+    : x(xi), y(yi), x_charge(cix), y_charge(ciy), energy(ei) 
+    {
+      z = 0;
+      x_size = 0;
+      y_size = 0;
+    }
 
     GEMClusterStruct( const GEMClusterStruct & gem_cluster)
     : x(gem_cluster.x), y(gem_cluster.y),  
-      x_charge(gem_cluster.x_charge), y_charge(gem_cluster.y_charge),
-      energy(gem_cluster.energy), z(gem_cluster.z) {}
+      x_charge(gem_cluster.x_charge), 
+      y_charge(gem_cluster.y_charge),
+      energy(gem_cluster.energy), 
+      z(gem_cluster.z), 
+      x_size(gem_cluster.x_size),
+      y_size(gem_cluster.y_size){}
 
     void SetEnergy(float e) {energy = e;}
     void SetX(float xp) {x = xp;}
