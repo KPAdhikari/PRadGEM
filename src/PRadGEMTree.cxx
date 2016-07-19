@@ -6,10 +6,14 @@
 
 PRadGEMTree::PRadGEMTree()
 {
+    // variable init
+    angular_resolution_from_moller1 = 0.;
+    angular_resolution_from_moller2 = 0.;
+
+    // tree
     std::cout<<"PRadGEMTree Constructor..."<<std::endl;
     tree = new TTree("PRadGEMTree", "PRadGEMTree");
     tree -> Branch("evt_id", &evt_id, "evt_id/l");
-   
 
     GEMClusterStruct g1; 
     a_gem1 = new TClonesArray("GEMClusterStruct");
@@ -19,6 +23,10 @@ PRadGEMTree::PRadGEMTree()
     tree -> Branch("gem1", &a_gem1);
     tree -> Branch("gem2", &a_gem2);
     tree -> Branch("hycal", &a_hycal);
+
+    // independent physics object
+    tree -> Branch("angular_resolution_from_moller1", &angular_resolution_from_moller1, "angular_resolution_from_moller1/F");
+    tree -> Branch("angular_resolution_from_moller2", &angular_resolution_from_moller2, "angular_resolution_from_moller2/F");
 }
 
 PRadGEMTree::~PRadGEMTree()

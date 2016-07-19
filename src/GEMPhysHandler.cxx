@@ -125,8 +125,8 @@ GEMPhysHandler::GEMPhysHandler()
     Z_hycal= 5600.;//mm
     Delta = 60.0;
     //Z_hycal = 5820;//mm
-    //beamEnergy = 2.147;//GeV
-    beamEnergy = 1.1;//GeV
+    beamEnergy = 2.147;//GeV
+    //beamEnergy = 1.1;//GeV
     // 3% energy resolution 5 sigma
     beamEnergyCut = beamEnergy * 0.85 * 1000; //MeV
 
@@ -400,11 +400,11 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	    // Fill histos
 	    ComputeGEMOffsets(&online_hit);
             EvalMatchMech(&online_hit);
-	    CharactorizeGEM(&online_hit);
 	    ProcessEp(&online_hit);
 	    ProcessMoller(&online_hit);
 	    ProcessMollerAfterCorrection(&online_hit);
 	    GetGEMClusterMapHyCalCoor(&online_hit);
+	    CharactorizeGEM(&online_hit);
 	}
 
 	chan.close();
@@ -1024,7 +1024,7 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 
 
     // Moller events selection
-    //     require them in different quadrants, very rough
+    // require them in different quadrants, very rough
 
     if( gem.size() == 2 ) 
     { 
@@ -1074,6 +1074,10 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 		slope1 = slope1+PI; 
 	    else if( (gem[1].x>0) && (gem[1].y<0)) 
 		slope1 = 2*PI - slope1 ;
+	    
+	    // moller angular resolution
+	    rst_tree -> angular_resolution_from_moller1 = temp*180./PI - MollerAngleFromEnergy(gem[0].energy);
+	    rst_tree -> angular_resolution_from_moller2 = theta*180./PI - MollerAngleFromEnergy(gem[0].energy);
 
 	    theta+=temp;
 	    hThetaDistributionMollerBeamLineCorrection->Fill(theta*180.0/PI);
@@ -1908,4 +1912,29 @@ void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<G
 	    }
 	}
     } 
+}
+
+double GEMPhysHandler::MollerAngleFromEnergy(double E)
+{
+    //double E_beam = 2200; // MeV
+    double E_beam = beamEnergy * 1000.; //GeV -> MeV
+    double E_elec = 0.511; //MeV
+    double top = E * E_beam + E_elec*(E - E_beam) - E_elec * E_elec;
+    double bottom = TMath::Sqrt( (E_beam * E_beam - E_elec * E_elec) * (E * E - E_elec * E_elec) );
+    double cosangle = top / bottom;
+    return TMath::ACos(cosangle)*180./3.1415926;
+}
+
+double GEMPhysHandler::MollerEnergyFromAngle(double theta)
+{
+    // Note:
+    //      theta in deg.
+    //      not in rad
+    
+    double E_beam = beamEnergy * 1000.;
+    double E_elec = 0.511;//MeV
+    theta = theta/180. * 3.1415926;
+    double _alpha = (E_beam + E_elec) / TMath::Cos(theta) / TMath::Sqrt( E_beam * E_beam - E_elec * E_elec);
+    double alpha = _alpha * _alpha;
+    return (alpha + 1)/(alpha -1) * E_elec;
 }

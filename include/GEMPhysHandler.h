@@ -72,6 +72,10 @@ public:
   void InitTDCGroup();
   int GetTDCGroup(const string &);
 
+  // moller energy vs scattering angle formula
+  double MollerAngleFromEnergy(double E);
+  double MollerEnergyFromAngle(double theta);
+
 private:
   vector<int> vSRSSingleEventData;
   vector<int> vSRSZeroEventData;

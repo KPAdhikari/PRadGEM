@@ -20,6 +20,9 @@ public:
  
     void Save();
 
+    // public states
+    float angular_resolution_from_moller1;
+    float angular_resolution_from_moller2;
 
 private:
     TTree *tree;
