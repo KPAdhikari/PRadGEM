@@ -7,8 +7,8 @@
 PRadGEMTree::PRadGEMTree()
 {
     // variable init
-    angular_resolution_from_moller1 = 0.;
-    angular_resolution_from_moller2 = 0.;
+    angular_resolution_from_moller1 = 360.;
+    angular_resolution_from_moller2 = 360.;
 
     // tree
     std::cout<<"PRadGEMTree Constructor..."<<std::endl;
