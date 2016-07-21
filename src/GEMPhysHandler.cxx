@@ -1086,6 +1086,7 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 		rst_tree -> angle_moller2 = temp*180./PI;
 		rst_tree -> symm_dx = gem[0].x + gem[1].x;
 		rst_tree -> symm_dy = gem[0].y + gem[1].y;
+		rst_tree -> symm_coplanarity = (slope1-slope2)*180.0/PI - 180.0;
 	    }
 
 	    theta+=temp;

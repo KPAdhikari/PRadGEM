@@ -30,6 +30,7 @@ PRadGEMTree::PRadGEMTree()
     tree -> Branch("angle_moller2", &angle_moller2, "angle_moller2/F");
     tree -> Branch("symm_dx", &symm_dx, "symm_dx/F");
     tree -> Branch("symm_dy", &symm_dy, "symm_dy/F");
+    tree -> Branch("symm_coplanarity", &symm_coplanarity, "symm_coplanarity/F");
 }
 
 PRadGEMTree::~PRadGEMTree()
@@ -43,6 +44,7 @@ void PRadGEMTree::Clear()
     angle_moller2 = 360.;
     symm_dx = 1200.;
     symm_dy = 1200.;
+    symm_coplanarity = 180.;
 }
 
 

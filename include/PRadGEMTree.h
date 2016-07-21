@@ -28,6 +28,7 @@ public:
     float angle_moller2;
     float symm_dx;
     float symm_dy;
+    float symm_coplanarity;
 
 private:
     TTree *tree;
