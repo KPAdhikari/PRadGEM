@@ -23,6 +23,8 @@ public:
     // public states
     float angular_resolution_from_moller1;
     float angular_resolution_from_moller2;
+    float angle_moller1;
+    float angle_moller2;
 
 private:
     TTree *tree;

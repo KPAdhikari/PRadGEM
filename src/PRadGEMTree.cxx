@@ -9,6 +9,8 @@ PRadGEMTree::PRadGEMTree()
     // variable init
     angular_resolution_from_moller1 = 360.;
     angular_resolution_from_moller2 = 360.;
+    angle_moller1 = 360.;
+    angle_moller2 = 360.;
 
     // tree
     std::cout<<"PRadGEMTree Constructor..."<<std::endl;
@@ -27,6 +29,8 @@ PRadGEMTree::PRadGEMTree()
     // independent physics object
     tree -> Branch("angular_resolution_from_moller1", &angular_resolution_from_moller1, "angular_resolution_from_moller1/F");
     tree -> Branch("angular_resolution_from_moller2", &angular_resolution_from_moller2, "angular_resolution_from_moller2/F");
+    tree -> Branch("angle_moller1", &angle_moller1, "angle_moller1/F");
+    tree -> Branch("angle_moller2", &angle_moller2, "angle_moller2/F");
 }
 
 PRadGEMTree::~PRadGEMTree()
