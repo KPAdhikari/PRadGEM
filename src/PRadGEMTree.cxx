@@ -7,17 +7,14 @@
 PRadGEMTree::PRadGEMTree()
 {
     // variable init
-    angular_resolution_from_moller1 = 360.;
-    angular_resolution_from_moller2 = 360.;
-    angle_moller1 = 360.;
-    angle_moller2 = 360.;
+    Clear();
 
     // tree
     std::cout<<"PRadGEMTree Constructor..."<<std::endl;
     tree = new TTree("PRadGEMTree", "PRadGEMTree");
     tree -> Branch("evt_id", &evt_id, "evt_id/l");
 
-    GEMClusterStruct g1; 
+    //GEMClusterStruct g1; 
     a_gem1 = new TClonesArray("GEMClusterStruct");
     a_gem2 = new TClonesArray("GEMClusterStruct");
     a_hycal = new TClonesArray("HyCalClusterStruct");
@@ -31,10 +28,23 @@ PRadGEMTree::PRadGEMTree()
     tree -> Branch("angular_resolution_from_moller2", &angular_resolution_from_moller2, "angular_resolution_from_moller2/F");
     tree -> Branch("angle_moller1", &angle_moller1, "angle_moller1/F");
     tree -> Branch("angle_moller2", &angle_moller2, "angle_moller2/F");
+    tree -> Branch("symm_dx", &symm_dx, "symm_dx/F");
+    tree -> Branch("symm_dy", &symm_dy, "symm_dy/F");
 }
 
 PRadGEMTree::~PRadGEMTree()
 {}
+
+void PRadGEMTree::Clear()
+{    
+    angular_resolution_from_moller1 = 360.;
+    angular_resolution_from_moller2 = 360.;
+    angle_moller1 = 360.;
+    angle_moller2 = 360.;
+    symm_dx = 1200.;
+    symm_dy = 1200.;
+}
+
 
 void PRadGEMTree::Fill(const unsigned long &index, 
                        const std::vector<GEMClusterStruct> &gem1 , 

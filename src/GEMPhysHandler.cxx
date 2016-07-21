@@ -1076,16 +1076,16 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 		slope1 = 2*PI - slope1 ;
 	    
 	    // moller angular resolution
-	    rst_tree -> angular_resolution_from_moller1 = 360.;
-	    rst_tree -> angular_resolution_from_moller2 = 360.;
-	    rst_tree -> angle_moller1 = 360.;
-	    rst_tree -> angle_moller2 = 360.;
-            if( (gem[0].energy>425.*beamEnergy) && (gem[0].energy<575.*beamEnergy) )
+	    rst_tree -> Clear();
+            if( (gem[0].energy>425.*beamEnergy) && (gem[0].energy<575.*beamEnergy) && 
+	        (gem[1].energy>425.*beamEnergy) && (gem[1].energy<575.*beamEnergy) )
 	    {
 	        rst_tree -> angular_resolution_from_moller1 = temp*180./PI - MollerAngleFromEnergy(gem[0].energy);
 	        rst_tree -> angular_resolution_from_moller2 = theta*180./PI - MollerAngleFromEnergy(gem[1].energy);
 		rst_tree -> angle_moller1 = temp*180./PI;
 		rst_tree -> angle_moller2 = temp*180./PI;
+		rst_tree -> symm_dx = gem[0].x + gem[1].x;
+		rst_tree -> symm_dy = gem[0].y + gem[1].y;
 	    }
 
 	    theta+=temp;

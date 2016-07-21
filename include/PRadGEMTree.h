@@ -19,12 +19,15 @@ public:
                                           const std::vector<HyCalHit> &hycal);
  
     void Save();
+    void Clear();
 
     // public states
     float angular_resolution_from_moller1;
     float angular_resolution_from_moller2;
     float angle_moller1;
     float angle_moller2;
+    float symm_dx;
+    float symm_dy;
 
 private:
     TTree *tree;
