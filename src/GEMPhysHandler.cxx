@@ -2026,21 +2026,21 @@ int GEMPhysHandler::GetSectorIndex(double x, double y)
 
     if( (y>y_sector[0]) && (y<=y_sector[1]) )
         index_y = 1;
-    if( (y>y_sector[2]) && (y<=y_sector[3]) )
+    else if( (y>y_sector[2]) && (y<=y_sector[3]) )
         index_y = 2;
-    if( (y>y_sector[4]) && (y<=y_sector[5]) )
+    else if( (y>y_sector[4]) && (y<=y_sector[5]) )
         index_y = 3;
-    if( (y>y_sector[5]) && (y<=y_sector[6]) )
+    else if( (y>y_sector[5]) && (y<=y_sector[6]) )
         index_y = 4;
-    if( (y>y_sector[7]) && (y<=y_sector[8]) )
+    else if( (y>y_sector[7]) && (y<=y_sector[8]) )
         index_y = 5;
-    if( (y>y_sector[8]) && (y<=y_sector[9]) )
+    else if( (y>y_sector[8]) && (y<=y_sector[9]) )
         index_y = 6;
-    if( (y>y_sector[10]) && (y<=y_sector[11]) )
+    else if( (y>y_sector[10]) && (y<=y_sector[11]) )
         index_y = 7;
-    if( (y>y_sector[12]) && (y<=y_sector[13]) )
+    else if( (y>y_sector[12]) && (y<=y_sector[13]) )
         index_y = 8;
-    if( (y>y_sector[14]) && (y<=y_sector[15]) )
+    else if( (y>y_sector[14]) && (y<=y_sector[15]) )
         index_y = 9;
 
     index = index_y * 8 + index_x;
