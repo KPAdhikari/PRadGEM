@@ -62,14 +62,6 @@ GEMPhysHandler::GEMPhysHandler()
     GEMEpElectronQuantity = 0.;
     HyCalEpElectronQuantity = 0.;
     //sectorize gem
-    float x_sec[14] ={-626.5, -345.9, -341.8, -162.5, -159.8, -37.7,
-                        39.1,  159.9,  163.9,  343.2,  345.9, 403.0,
-		       404.4, 626.5}; 
-    float y_sec[16] ={-685.0, -410.9, -408.1, -205.5, -202.7, -39.0,
-                        -1.3,    1.3,   39.0,  202.7,  205.9, 302.7,
-		       312.0,  408.2,  410.8, 685.0};
-    x_sector = x_sec;
-    y_sector = y_sec;
     for(int i=0;i<70;i++)
     {
         gem_moller_quantity[i] = 1.;
@@ -1694,8 +1686,8 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
        HyCalEpElectronQuantity += 1.0;
     }
     // sectorize
-    double _x_project = -600.;
-    double _y_project = -600.;
+    double _x_project = -1200.;
+    double _y_project = -1200.;
 
     int nh = nhits_hycal;
     for(int i=0;i<nh;i++)
@@ -2043,15 +2035,14 @@ int GEMPhysHandler::GetSectorIndex(double x, double y)
     else if( (y>y_sector[14]) && (y<=y_sector[15]) )
         index_y = 9;
 
-    index = index_y * 8 + index_x;
-
+    index = (index_y-1) * 8 + index_x;
     if(index > 0 && index <=27 )
         index = index;
     else if(index > 27 && index <=35 )
         index = index -1;
     else if(index > 36 && index <= 72 )
         index = index -2;
-
+   
     return index -1;
 }
 
