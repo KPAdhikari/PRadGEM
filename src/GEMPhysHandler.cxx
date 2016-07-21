@@ -61,6 +61,22 @@ GEMPhysHandler::GEMPhysHandler()
     HyCalMollerElectronQuantity = 0.;
     GEMEpElectronQuantity = 0.;
     HyCalEpElectronQuantity = 0.;
+    //sectorize gem
+    float x_sec[14] ={-626.5, -345.9, -341.8, -162.5, -159.8, -37.7,
+                        39.1,  159.9,  163.9,  343.2,  345.9, 403.0,
+		       404.4, 626.5}; 
+    float y_sec[16] ={-685.0, -410.9, -408.1, -205.5, -202.7, -39.0,
+                        -1.3,    1.3,   39.0,  202.7,  205.9, 302.7,
+		       312.0,  408.2,  410.8, 685.0};
+    x_sector = x_sec;
+    y_sector = y_sec;
+    for(int i=0;i<70;i++)
+    {
+        gem_moller_quantity[i] = 1.;
+	hycal_moller_quantity[i] = 1.;
+	gem_ep_quantity[i] = 0.;
+	hycal_ep_quantity[i] = 0.;
+    }
 
     vSRSSingleEventData.clear();
     vSRSZeroEventData.clear();
@@ -185,7 +201,7 @@ void GEMPhysHandler::ProcessAllFiles()
     SavePhysResults();
 
     outfile<<"<><><><><><><>"<<endl;
-    outfile<<"Overall Detector Efficiency in producton runs:"
+    outfile<<"Overall Detector Efficiency in production runs:"
            <<endl;
     outfile<<"Moller Events Efficiency: "
            <<GEMMollerElectronQuantity/HyCalMollerElectronQuantity
@@ -193,6 +209,7 @@ void GEMPhysHandler::ProcessAllFiles()
     outfile<<"e-p Events Efficiency: "
            <<GEMEpElectronQuantity/HyCalEpElectronQuantity
 	   <<endl;
+    WriteSectorEff();
 
 #ifdef TDC_CHECK_EFFICIENCY
     outfile<<endl<<endl;
@@ -1077,8 +1094,8 @@ template<class T> void GEMPhysHandler::ProcessMollerAfterCorrection(T * hit_deco
 	    
 	    // moller angular resolution
 	    rst_tree -> Clear();
-            if( (gem[0].energy>425.*beamEnergy) && (gem[0].energy<575.*beamEnergy) && 
-	        (gem[1].energy>425.*beamEnergy) && (gem[1].energy<575.*beamEnergy) )
+            if( (gem[0].energy>485.*beamEnergy) && (gem[0].energy<515.*beamEnergy) && 
+	        (gem[1].energy>485.*beamEnergy) && (gem[1].energy<515.*beamEnergy) )
 	    {
 	        rst_tree -> angular_resolution_from_moller1 = temp*180./PI - MollerAngleFromEnergy(gem[0].energy);
 	        rst_tree -> angular_resolution_from_moller2 = theta*180./PI - MollerAngleFromEnergy(gem[1].energy);
@@ -1654,6 +1671,8 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     int nhits_gem1 = gem1.size();
     int nhits_gem2 = gem2.size();
     int nhits_hycal = pHHit->size();
+    if(nhits_hycal <=0 )
+        return;
 
     double z_gem1 = Z_gem1;
     double z_gem2 = Z_gem2;
@@ -1664,16 +1683,21 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     vector<GEMClusterStruct> res_gem2;
 
     // gem efficiency in production runs
-    if( (pHHit->size() == 2) && ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
+    if( (pHHit->size() == 2) && 
+        ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
     {
        HyCalMollerElectronQuantity += 2.0;
     }
-    if( (pHHit->size() == 1) && ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
+    else if( (pHHit->size() == 1) && 
+             ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
     {
        HyCalEpElectronQuantity += 1.0;
     }
+    // sectorize
+    double _x_project = -600.;
+    double _y_project = -600.;
 
-    int nh = pHHit->size();
+    int nh = nhits_hycal;
     for(int i=0;i<nh;i++)
     {
 	double dr = 0.;
@@ -1737,8 +1761,11 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	}
 	//after searching
 	if( (match_gem1 == 1) && (match_gem2 == 1) ) 
+	{
 	    cout<<"GEMPhysHandler::HyCalGEMPosMatch(): error...."
 	        <<endl;
+	    return;
+	}
 	else if( match_gem1 == 1 ) 
 	{ 
 	    hXDiffMatch->Fill(gem1[m_index].x - x_project);
@@ -1748,6 +1775,13 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 
 	    gem1[m_index].energy = m_e; 
 	    res_gem1.push_back(gem1[m_index]);
+
+	    //sectorize
+	    if(nh == 1)
+	    {
+	        _x_project = x_project;
+		_y_project = y_project;
+	    }
 	}
 	else if( match_gem2 == 1 ) 
 	{ 
@@ -1758,6 +1792,12 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 
 	    gem2[m_index].energy = m_e; 
 	    res_gem2.push_back(gem2[m_index]);
+	    //sectorize
+	    if(nh == 1)
+	    {
+	        _x_project = x_project;
+		_y_project = y_project;
+	    }
 	}
     }
 
@@ -1795,7 +1835,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 		hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
 	    }
 	}
-	if( (nhits_gem2 == 1) && (nhits_gem1==0) &&  (nhits_hycal >=2) )
+	else if( (nhits_gem2 == 1) && (nhits_gem1==0) &&  (nhits_hycal >=2) )
 	{
 	    double theta = TMath::Sqrt( (res_gem2[0].x)*(res_gem2[0].x)+(res_gem2[0].y)*(res_gem2[0].y)  )/z_gem2 *180 /PI;
 	    hhEnergyVsAngleHyCal2CGEM1C->Fill(theta, gem2[0].energy);
@@ -1812,13 +1852,25 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     hQuantityOfClustersGEMAfterMatch->Fill( res_gem1.size() + res_gem2.size() );
 
     // gem efficiency in production runs
-    if( (pHHit->size() == 2) && ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
+    if( (pHHit->size() == 2) && 
+        ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
     {
        GEMMollerElectronQuantity += res_gem1.size() + res_gem2.size();
+
+       //sectorize
     }
-    if( (pHHit->size() == 1) && ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
+    else if( (pHHit->size() == 1) && 
+        ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
     {
        GEMEpElectronQuantity += res_gem1.size() + res_gem2.size();
+       
+       //sectorize
+       int index = GetSectorIndex(_x_project, _y_project);
+       if(index >= 0)
+       {
+           hycal_ep_quantity[index] += 1.0;
+           gem_ep_quantity[index] +=  res_gem1.size() + res_gem2.size();
+       }
     }
 
 }
@@ -1947,4 +1999,82 @@ double GEMPhysHandler::MollerEnergyFromAngle(double theta)
     double _alpha = (E_beam + E_elec) / TMath::Cos(theta) / TMath::Sqrt( E_beam * E_beam - E_elec * E_elec);
     double alpha = _alpha * _alpha;
     return (alpha + 1)/(alpha -1) * E_elec;
+}
+
+int GEMPhysHandler::GetSectorIndex(double x, double y)
+{
+    int index = -1;
+    int index_x = -1;
+    int index_y = -1;
+
+    if( (x>x_sector[0]) && (x<=x_sector[1]) )
+        index_x = 1;
+    else if( (x>x_sector[2]) && (x<=x_sector[3]) )
+        index_x = 2;
+    else if( (x>x_sector[4]) && (x<=x_sector[5]) )
+        index_x = 3;
+    else if( (x>x_sector[5]) && (x<=x_sector[6]) )
+        index_x = 4;
+    else if( (x>x_sector[6]) && (x<=x_sector[7]) )
+        index_x = 5;
+    else if( (x>x_sector[8]) && (x<=x_sector[9]) )
+        index_x = 6;
+    else if( (x>x_sector[10]) && (x<=x_sector[11]) )
+        index_x = 7;
+    else if( (x>x_sector[12]) && (x<=x_sector[13]) )
+        index_x = 8;
+
+    if( (y>y_sector[0]) && (y<=y_sector[1]) )
+        index_y = 1;
+    if( (y>y_sector[2]) && (y<=y_sector[3]) )
+        index_y = 2;
+    if( (y>y_sector[4]) && (y<=y_sector[5]) )
+        index_y = 3;
+    if( (y>y_sector[5]) && (y<=y_sector[6]) )
+        index_y = 4;
+    if( (y>y_sector[7]) && (y<=y_sector[8]) )
+        index_y = 5;
+    if( (y>y_sector[8]) && (y<=y_sector[9]) )
+        index_y = 6;
+    if( (y>y_sector[10]) && (y<=y_sector[11]) )
+        index_y = 7;
+    if( (y>y_sector[12]) && (y<=y_sector[13]) )
+        index_y = 8;
+    if( (y>y_sector[14]) && (y<=y_sector[15]) )
+        index_y = 9;
+
+    index = index_y * 8 + index_x;
+
+    if(index > 0 && index <=27 )
+        index = index;
+    else if(index > 27 && index <=35 )
+        index = index -1;
+    else if(index > 36 && index <= 72 )
+        index = index -2;
+
+    return index -1;
+}
+
+void GEMPhysHandler::WriteSectorEff()
+{
+    outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
+    outfile<<"sector effiency..."<<endl;
+    for(int i=0;i<70;i++)
+    {
+        outfile<<"Moller Efficiency Sector "<<i<<": "
+	       <<gem_moller_quantity[i]  <<" / "
+	       <<hycal_moller_quantity[i]<<" = "
+	       <<gem_moller_quantity[i]/hycal_moller_quantity[i]
+	       <<endl;
+    }
+    outfile<<"......"<<endl;
+    for(int i=0;i<70;i++)
+    {
+       outfile<<"ep Efficiency Sector "<<i<<": "
+	       <<gem_ep_quantity[i]  <<" / "
+	       <<hycal_ep_quantity[i]<<" = "
+	       <<gem_ep_quantity[i]/hycal_ep_quantity[i]
+	       <<endl;
+    }
+    outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
 }

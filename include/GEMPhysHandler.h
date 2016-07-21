@@ -76,6 +76,10 @@ public:
   double MollerAngleFromEnergy(double E);
   double MollerEnergyFromAngle(double theta);
 
+  // sectorize gem
+  int GetSectorIndex( double x, double y);
+  void WriteSectorEff();
+
 private:
   vector<int> vSRSSingleEventData;
   vector<int> vSRSZeroEventData;
@@ -92,7 +96,7 @@ private:
   int nElectron_127;
   int neff;
   int neff_after_match;
-  
+ 
   int nScinEvents;
   int nHyCalEvents;
   // totoal number of events 
@@ -105,6 +109,13 @@ private:
   double HyCalMollerElectronQuantity;
   double GEMEpElectronQuantity;
   double HyCalEpElectronQuantity;
+  // sectorize GEM
+  float *x_sector;
+  float *y_sector;
+  double gem_moller_quantity[70];
+  double hycal_moller_quantity[70];
+  double gem_ep_quantity[70];
+  double hycal_ep_quantity[70];
 
   GEMRawDecoder *fRawDecoder;
   GEMConfigure config;
