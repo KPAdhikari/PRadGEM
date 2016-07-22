@@ -199,6 +199,8 @@ void GEMPhysHandler::ProcessAllFiles()
            <<GEMMollerElectronQuantity/HyCalMollerElectronQuantity
 	   <<endl;
     outfile<<"e-p Events Efficiency: "
+           <<GEMEpElectronQuantity<<" / "
+	   <<HyCalEpElectronQuantity<<" = "
            <<GEMEpElectronQuantity/HyCalEpElectronQuantity
 	   <<endl;
     WriteSectorEff();
@@ -1683,7 +1685,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     else if( (pHHit->size() == 1) && 
              ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
     {
-       HyCalEpElectronQuantity += 1.0;
+       //HyCalEpElectronQuantity += 1.0;
     }
     // sectorize
     double _x_project = -1200.;
@@ -1848,18 +1850,22 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
         ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
     {
        GEMMollerElectronQuantity += res_gem1.size() + res_gem2.size();
-
-       //sectorize
     }
     else if( (pHHit->size() == 1) && 
         ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
+    //else if( pHHit->size() == 1 ) 
     {
+       int nn = res_gem1.size() + res_gem2.size();
+       assert( nn <=1 );
        GEMEpElectronQuantity += res_gem1.size() + res_gem2.size();
+       HyCalEpElectronQuantity +=1.0;
        
        //sectorize
-       int index = GetSectorIndex(_x_project, _y_project);
+       //int index = GetSectorIndex(_x_project, _y_project);
+       int index = GetSectorIndex(pHHit->at(0).x, pHHit->at(0).y);
        if(index >= 0)
        {
+	   //HyCalEpElectronQuantity +=1.0;
            hycal_ep_quantity[index] += 1.0;
            gem_ep_quantity[index] +=  res_gem1.size() + res_gem2.size();
        }
@@ -1998,7 +2004,25 @@ int GEMPhysHandler::GetSectorIndex(double x, double y)
     int index = -1;
     int index_x = -1;
     int index_y = -1;
-
+    /*    
+    for(int i=0;i<13;i++)
+    {
+        if( (x>x_sector[i]) && (x<=x_sector[i+1]) )
+	{
+	    index_x = i+1;
+	    break;
+	}
+    }
+    for(int i=0;i<15;i++)
+    {
+        if( (y>y_sector[i]) && (y<=y_sector[i+1]) )
+	{
+	    index_y = i+1;
+	    break;
+	}
+    }
+    index = (index_y -1 ) * 13 + index_x;
+    */
     if( (x>x_sector[0]) && (x<=x_sector[1]) )
         index_x = 1;
     else if( (x>x_sector[2]) && (x<=x_sector[3]) )
@@ -2042,7 +2066,7 @@ int GEMPhysHandler::GetSectorIndex(double x, double y)
         index = index -1;
     else if(index > 36 && index <= 72 )
         index = index -2;
-   
+
     return index -1;
 }
 
@@ -2050,7 +2074,10 @@ void GEMPhysHandler::WriteSectorEff()
 {
     outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
     outfile<<"sector effiency..."<<endl;
-    for(int i=0;i<70;i++)
+    double gem = 0.0;
+    double hycal = 0.0;
+    /*
+    for(int i=0;i<195;i++)
     {
         outfile<<"Moller Efficiency Sector "<<i<<": "
 	       <<gem_moller_quantity[i]  <<" / "
@@ -2059,13 +2086,21 @@ void GEMPhysHandler::WriteSectorEff()
 	       <<endl;
     }
     outfile<<"......"<<endl;
+    */
     for(int i=0;i<70;i++)
     {
+       gem += gem_ep_quantity[i];
+       hycal += hycal_ep_quantity[i];
        outfile<<"ep Efficiency Sector "<<i<<": "
 	       <<gem_ep_quantity[i]  <<" / "
 	       <<hycal_ep_quantity[i]<<" = "
 	       <<gem_ep_quantity[i]/hycal_ep_quantity[i]
 	       <<endl;
     }
+    outfile<<"in all "
+           <<gem<<" / "
+	   <<hycal<<" = "
+	   <<gem/hycal
+	   <<endl;
     outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
 }

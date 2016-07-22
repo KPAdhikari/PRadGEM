@@ -110,12 +110,12 @@ private:
   double GEMEpElectronQuantity;
   double HyCalEpElectronQuantity;
   // sectorize GEM
-  float x_sector[14] ={-626.5, -345.9, -341.8, -162.5, -159.8, -37.7,
+  float x_sector[14] ={-826.5, -345.9, -341.8, -162.5, -159.8, -37.7,
                         39.1,  159.9,  163.9,  343.2,  345.9, 403.0,
-		       404.4, 626.5}; 
-  float y_sector[16] ={-685.0, -410.9, -408.1, -205.5, -202.7, -39.0,
+		       404.4, 826.5}; 
+  float y_sector[16] ={-885.0, -410.9, -408.1, -205.5, -202.7, -39.0,
                         -1.3,    1.3,   39.0,  202.7,  205.9, 302.7,
-		       312.0,  408.2,  410.8, 685.0};
+		       312.0,  408.2,  410.8, 885.0};
 
   double gem_moller_quantity[70];
   double hycal_moller_quantity[70];
