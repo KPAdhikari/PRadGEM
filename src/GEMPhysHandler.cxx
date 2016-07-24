@@ -25,6 +25,7 @@ using namespace evio;
 
 GEMPhysHandler::GEMPhysHandler()
 {
+    // run log
     string txt = config.phys_results_path;
     txt = txt + string(".run.log");
     outfile.open(txt.c_str(), std::ios::out);
@@ -33,9 +34,79 @@ GEMPhysHandler::GEMPhysHandler()
     if( !outfile.is_open() )
 	cout<<"Error: cannot open run_log file..."
 	    <<endl;
+    
     rst_tree = new PRadGEMTree();
 
-    fRawDecoder = 0;
+    // tdc group log
+    outfile<<"TDC group quantity: "
+	<<config.TDC_Quan
+	<<endl;
+    for(int i=0;i<config.TDC_Quan;i++)
+    {
+	outfile<<"TDC Group: "
+	    <<config.TDC[i]
+	    <<endl;
+    }
+
+    InitTDCGroup();
+
+    BookHistos();
+    BookTimingHistos(); 
+    InitSetup();
+    InitPedestal();
+    InitVariables();
+    InitHandler();
+    InitIntermediateMollerCenterVariable();
+}
+
+void GEMPhysHandler::BookTimingHistos()
+{
+    //test
+    hhTimeCorrelation = new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
+    hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
+}
+
+void GEMPhysHandler::InitPedestal()
+{
+    string pedestal_file = config.GetLoadPedPath();
+    ped = new GEMPedestal(pedestal_file);
+    ped -> LoadPedestal( );
+}
+
+void GEMPhysHandler::InitSetup()
+{
+    // origin transfer
+    O_Transfer = 253.2;
+    OverlapStart = 231.2;
+    Z_gem1 = 5300.+20.;//mm + chamber + screw cap thickness
+    Z_gem2 = 5260.+20.;//mm
+    Z_hycal= 5600.;//mm
+    Delta = 60.0;
+    //Z_hycal = 5820;//mm
+    beamEnergy = 2.147;//GeV
+    //beamEnergy = 1.1;//GeV
+    // 3% energy resolution 5 sigma
+    beamEnergyCut = beamEnergy * 0.85 * 1000; //MeV
+}
+
+void GEMPhysHandler::InitVariables()
+{
+    vSRSSingleEventData.clear();
+    vSRSZeroEventData.clear();
+    FECs.clear();
+
+    PRDMapping *mapping = PRDMapping::GetInstance();
+    FECs = mapping->GetBankIDSet();
+    //for debug
+    outfile<<"FECs Found:  ";
+    set<int>::iterator it;
+    for(it=FECs.begin(); it!=FECs.end(); ++it)
+    {
+	outfile<<(*it)<<"  ";
+    }
+    outfile<<endl;
+
+    totalEnergyDeposit = config.Hycal_Energy; //MeV
 
     nScinEvents = 0;
     nHyCalEvents = 0;
@@ -69,38 +140,17 @@ GEMPhysHandler::GEMPhysHandler()
 	gem_ep_quantity[i] = 0.;
 	hycal_ep_quantity[i] = 0.;
     }
-
-    vSRSSingleEventData.clear();
-    vSRSZeroEventData.clear();
-    FECs.clear();
-
-    PRDMapping *mapping = PRDMapping::GetInstance();
-    FECs = mapping->GetBankIDSet();
-
-    string pedestal_file = config.GetLoadPedPath();
-    ped = new GEMPedestal(pedestal_file);
-    ped -> LoadPedestal( );
-    //for debug
-    outfile<<"FECs Found:  ";
-    set<int>::iterator it;
-    for(it=FECs.begin(); it!=FECs.end(); ++it)
+    //circular sectorize gem
+    for(int i=0;i<50;i++)
     {
-	outfile<<(*it)<<"  ";
+        r_sector[i] = 50. + 10.*i;
+        gem_r_sec_ep_quantity[i] = 0.;
+        hycal_r_sec_ep_quantity[i] = 0.;
     }
-    outfile<<endl;
+}
 
-    // tdc group log
-    outfile<<"TDC group quantity: "
-	<<config.TDC_Quan
-	<<endl;
-    for(int i=0;i<config.TDC_Quan;i++)
-    {
-	outfile<<"TDC Group: "
-	    <<config.TDC[i]
-	    <<endl;
-    }
-
-    //chao
+void GEMPhysHandler::InitHandler()
+{
     pHandler = new PRadDataHandler();
     pHandler->ReadTDCList("/home/xbai/w/pRad/source/PRadDecoder/config/tdc_group_list.txt");
     pHandler->ReadChannelList("/home/xbai/w/pRad/source/PRadDecoder/config/module_list.txt");
@@ -111,40 +161,16 @@ GEMPhysHandler::GEMPhysHandler()
 
     reconstruct = new PRadReconstructor();
     reconstruct->SetHandler(pHandler);
+}
 
-    totalEnergyDeposit = config.Hycal_Energy; //MeV
-
-    InitTDCGroup();
-
-    //test
-    hhTimeCorrelation = new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
-    hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
-
-    BookHistos();
-
-    //xxxxxxxxxxxxxxx
-    //   constants
-    //xxxxxxxxxxxxxxx
-    // origin transfer
-    O_Transfer = 253.2;
-    OverlapStart = 231.2;
-    Z_gem1 = 5300.+20.;//mm + chamber + screw cap thickness
-    Z_gem2 = 5260.+20.;//mm
-    Z_hycal= 5600.;//mm
-    Delta = 60.0;
-    //Z_hycal = 5820;//mm
-    beamEnergy = 2.147;//GeV
-    //beamEnergy = 1.1;//GeV
-    // 3% energy resolution 5 sigma
-    beamEnergyCut = beamEnergy * 0.85 * 1000; //MeV
-
+void GEMPhysHandler::InitIntermediateMollerCenterVariable()
+{
     //compute intersection points
     px1 = 0x270F;py1=0x270F;px2=0x270F;py2=0x270F;
     cx1 = 0x270F;cy1=0x270F;cx2=0x270F;cy2=0x270F;
 
     px1_c = 0x270F;py1_c=0x270F;px2_c=0x270F;py2_c=0x270F;
     cx1_c = 0x270F;cy1_c=0x270F;cx2_c=0x270F;cy2_c=0x270F;
-
 }
 
 GEMPhysHandler::~GEMPhysHandler()
@@ -182,7 +208,7 @@ void GEMPhysHandler::ProcessAllFiles()
 	pHandler->InitializeByData(config.fileList[0].c_str());
     }
 
-    for(int i=1;i<nFile;i++)
+    for(int i=1;i!=nFile;++i)
     {
 	filename = config.fileList[i];
 	ProcessAllEvents(-1);
@@ -774,35 +800,6 @@ template<class T> void GEMPhysHandler::ProcessEp(T * hit_decoder)
 	    hQSquareEp5->Fill(q_square);
 
     }
-    else if ( (gem2.size() == 1)&&(gem1.size() == 1) )
-    {
-	/*
-	 * Note:
-	 *     coordinates returned from class ZeroHitDecoder or OnlineHitDecoder
-	 *     is in chamber coordinate. 
-	 *     Total length in X side: 550.4mm
-	 *
-	 *     Need to find out the overlap region. 51.2mm overlapping. 
-	 *     checked the gerber file. only the hole area is overlapped.
-	 *     overlapping x region: x >  550.4/2  - 51.2 (=OverlapStart)
-	 */
-	//if( (gem1[0]>OverlapStart) && (gem2[0].x>OverlapStart)  && ((TMath::Abs(gem2[0].y+gem1[0].y))<2.0 /* suppose the shift between two chambers is smaller than 2mm  */) )
-	/*
-	   {
-	   theta = TMath::Sqrt( (gem2[0].x)*(gem2[0].x) + gem2[0].y*gem2[0].y) / z_gem2;
-	   theta = TMath::ATan(theta);
-	   hThetaDistributionEp->Fill(theta*180.0/PI);
-
-	//q suqare
-	top = 4.0*1.1*1.1*TMath::Sin(theta/2)*TMath::Sin(theta/2);
-	bottom = 1+ (2*1.1/0.938)*TMath::Sin(theta/2)*TMath::Sin(theta/2);
-	q_square = top/bottom;
-	hQSquareEp->Fill(q_square);
-
-	}
-	*/
-    }
-
 }
 
 template<class T> void GEMPhysHandler::ProcessMoller(T * hit_decoder)
@@ -1534,7 +1531,9 @@ int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, ve
     }
 }
 
-int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct> &gem2, vector<HyCalHit> *pHHit)
+int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1, 
+                                      vector<GEMClusterStruct> &gem2, 
+				      vector<HyCalHit> *pHHit)
 {
     if( (gem1.size() == 0) && (gem2.size() == 0))
     {
@@ -1687,9 +1686,6 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     {
        //HyCalEpElectronQuantity += 1.0;
     }
-    // sectorize
-    double _x_project = -1200.;
-    double _y_project = -1200.;
 
     int nh = nhits_hycal;
     for(int i=0;i<nh;i++)
@@ -1770,12 +1766,6 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	    gem1[m_index].energy = m_e; 
 	    res_gem1.push_back(gem1[m_index]);
 
-	    //sectorize
-	    if(nh == 1)
-	    {
-	        _x_project = x_project;
-		_y_project = y_project;
-	    }
 	}
 	else if( match_gem2 == 1 ) 
 	{ 
@@ -1787,11 +1777,6 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	    gem2[m_index].energy = m_e; 
 	    res_gem2.push_back(gem2[m_index]);
 	    //sectorize
-	    if(nh == 1)
-	    {
-	        _x_project = x_project;
-		_y_project = y_project;
-	    }
 	}
     }
 
@@ -1861,20 +1846,43 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
        HyCalEpElectronQuantity +=1.0;
        
        //sectorize
-       //int index = GetSectorIndex(_x_project, _y_project);
-       int index = GetSectorIndex(pHHit->at(0).x, pHHit->at(0).y);
+       double _x_project ;
+       double _y_project ;
+       float x = pHHit->at(0).x;
+       float y = pHHit->at(0).y;
+       if(x > 0)
+       {
+           _x_project = x *z_gem2/z_hycal;
+	   _y_project = y *z_gem2/z_hycal;
+       }
+       else
+       {
+           _x_project = x *z_gem1/z_hycal;
+	   _y_project = y *z_gem1/z_hycal;
+       }
+       int index = GetSectorIndex(_x_project, _y_project);
        if(index >= 0)
        {
 	   //HyCalEpElectronQuantity +=1.0;
            hycal_ep_quantity[index] += 1.0;
            gem_ep_quantity[index] +=  res_gem1.size() + res_gem2.size();
        }
+
+       float r = TMath::Sqrt(x*x+y*y);
+       int r_index = (int) (r/10.);
+       r_index -= 5;
+       if(r_index >= 0)
+       {
+           gem_r_sec_ep_quantity[r_index] += res_gem1.size() + res_gem2.size();
+	   hycal_r_sec_ep_quantity[r_index] +=1.0;
+       }
     }
 
 }
 
 
-void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, vector<GEMClusterStruct>& gem2)
+void GEMPhysHandler::GeometryMollerRing(vector<GEMClusterStruct> &gem1, 
+                                        vector<GEMClusterStruct>& gem2)
 {
     double z_gem1 = Z_gem1;
     double z_gem2 = Z_gem2;
@@ -2004,25 +2012,7 @@ int GEMPhysHandler::GetSectorIndex(double x, double y)
     int index = -1;
     int index_x = -1;
     int index_y = -1;
-    /*    
-    for(int i=0;i<13;i++)
-    {
-        if( (x>x_sector[i]) && (x<=x_sector[i+1]) )
-	{
-	    index_x = i+1;
-	    break;
-	}
-    }
-    for(int i=0;i<15;i++)
-    {
-        if( (y>y_sector[i]) && (y<=y_sector[i+1]) )
-	{
-	    index_y = i+1;
-	    break;
-	}
-    }
-    index = (index_y -1 ) * 13 + index_x;
-    */
+
     if( (x>x_sector[0]) && (x<=x_sector[1]) )
         index_x = 1;
     else if( (x>x_sector[2]) && (x<=x_sector[3]) )
@@ -2103,4 +2093,26 @@ void GEMPhysHandler::WriteSectorEff()
 	   <<gem/hycal
 	   <<endl;
     outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
+
+    outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
+    outfile<<"circular sector effiency..."<<endl;
+    double gem1 = 0.0;
+    double hycal1 = 0.0;
+    for(int i=0;i<50;i++)
+    {
+       gem1 += gem_r_sec_ep_quantity[i];
+       hycal1 += hycal_r_sec_ep_quantity[i];
+       outfile<<"ep Efficiency Sector "<<i<<": "
+	       <<gem_r_sec_ep_quantity[i]  <<" / "
+	       <<hycal_r_sec_ep_quantity[i]<<" = "
+	       <<gem_r_sec_ep_quantity[i]/hycal_r_sec_ep_quantity[i]
+	       <<endl;
+    }
+    outfile<<"in all "
+           <<gem1<<" / "
+	   <<hycal1<<" = "
+	   <<gem1/hycal1
+	   <<endl;
+    outfile<<"<<<>>><<<>>><<<>>><<<>>>"<<endl;
+
 }
