@@ -14,6 +14,7 @@ using namespace evio;
 //_______________________________________________
 GEMInputHandler::GEMInputHandler(string str)
 {
+  configure.LoadConfigure();
   filename = str;
   //file.open(filename.c_str(), ios::in|ios::binary);
   fRawDecoder = 0;

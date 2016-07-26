@@ -25,8 +25,11 @@ using namespace evio;
 
 GEMPhysHandler::GEMPhysHandler()
 {
+    config = new GEMConfigure();
+    config -> LoadConfigure();
+
     // run log
-    string txt = config.phys_results_path;
+    string txt = config->phys_results_path;
     txt = txt + string(".run.log");
     outfile.open(txt.c_str(), std::ios::out);
     outfile.close();
@@ -39,12 +42,12 @@ GEMPhysHandler::GEMPhysHandler()
 
     // tdc group log
     outfile<<"TDC group quantity: "
-	<<config.TDC_Quan
+	<<config->TDC_Quan
 	<<endl;
-    for(int i=0;i<config.TDC_Quan;i++)
+    for(int i=0;i<config->TDC_Quan;i++)
     {
 	outfile<<"TDC Group: "
-	    <<config.TDC[i]
+	    <<config->TDC[i]
 	    <<endl;
     }
 
@@ -68,7 +71,7 @@ void GEMPhysHandler::BookTimingHistos()
 
 void GEMPhysHandler::InitPedestal()
 {
-    string pedestal_file = config.GetLoadPedPath();
+    string pedestal_file = config->GetLoadPedPath();
     ped = new GEMPedestal(pedestal_file);
     ped -> LoadPedestal( );
 }
@@ -109,7 +112,7 @@ void GEMPhysHandler::InitVariables()
     }
     outfile<<endl;
 
-    totalEnergyDeposit = config.Hycal_Energy; //MeV
+    totalEnergyDeposit = config->Hycal_Energy; //MeV
 
     nScinEvents = 0;
     nHyCalEvents = 0;
@@ -184,20 +187,20 @@ GEMPhysHandler::~GEMPhysHandler()
 
 void GEMPhysHandler::ProcessAllFiles()
 {
-    int nFile = config.nFile;
+    int nFile = config->nFile;
     outfile<<"GEMPhysHandler::ProcessAllFiles: # of Files to analyze: "
 	<<nFile
 	<<endl;
 
     for(int i=0;i<nFile;i++)
     {
-	outfile<<config.fileList[i]<<endl;
+	outfile<<config->fileList[i]<<endl;
     }
 
-    outfile<<"TDC Cut: "<<config.TDC_Channel
-	<<", Start TIME:  "<<config.TDC_Start
-	<<", END TIME:  "<<config.TDC_End
-	<<", HyCal Energy Cut:  "<<config.Hycal_Energy
+    outfile<<"TDC Cut: "<<config->TDC_Channel
+	<<", Start TIME:  "<<config->TDC_Start
+	<<", END TIME:  "<<config->TDC_End
+	<<", HyCal Energy Cut:  "<<config->Hycal_Energy
 	<<endl;
 
     // to compute photon conversion rate
@@ -206,16 +209,24 @@ void GEMPhysHandler::ProcessAllFiles()
     neff_after_match = 0;
     nElectron = 0;
 
-    if(config.fileList[0].find("evio.0")!= string::npos)
+    if(config->fileList[0].find("evio.0")!= string::npos)
     {
-	pHandler->InitializeByData(config.fileList[0].c_str());
+	pHandler->InitializeByData(config->fileList[0].c_str());
+    }
+
+    cout<<"cache file name list..."<<endl;
+    string file_list[nFile];
+    for(int i=0;i!=nFile;i++)
+    {
+        file_list[i] = config->fileList[i];
     }
 
     for(int i=1;i!=nFile;++i)
     {
-	filename = config.fileList[i];
+        string nam = file_list[i];
+	filename = nam;
 	ProcessAllEvents(-1);
-	//ProcessAllEvents(40000);
+	//ProcessAllEvents(4000);
     }
 
     // Save Histos
@@ -340,9 +351,9 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	    if( convert == 1)
 		nScinEvents ++ ;
 
-	    if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config.Hycal_Energy) ) 
+	    if( (HyCalTimingCut == 1) && (convert == 1) && (photon_energy >= config->Hycal_Energy) ) 
 	    { 
-		//outfile<<"HyCal Energy: "<<config.Hycal_Energy<<endl;
+		//outfile<<"HyCal Energy: "<<config->Hycal_Energy<<endl;
 		if(ntrigger_current_file<10) 
 		    outfile<<"GEMPhys::ProcessEvents: Energy HyCal: "
 			<<photon_energy
@@ -505,7 +516,6 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
            <<eff_real_after_match
 	   <<endl<<endl;
 #endif
-
     return entry;
 }
 
@@ -557,7 +567,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 {
     int ti_size = ti_vec->size();
 
-    if(config.UseHyCalTimingCut == 1)
+    if(config->UseHyCalTimingCut == 1)
     {
 
 	HyCalTimingCut = 0;
@@ -567,9 +577,9 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 	    int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
 
 	    int right_tdc_channel = 0;
-	    for(int i=0;i<config.TDC_Quan;i++)
+	    for(int i=0;i<config->TDC_Quan;i++)
 	    {
-		if(tdc_ch == GetTDCGroup(config.TDC[i]) )
+		if(tdc_ch == GetTDCGroup(config->TDC[i]) )
 		    right_tdc_channel = 1;
 	    }
 
@@ -580,7 +590,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		if(nth_event<100) 
 		    outfile<<tdc_value<<endl;
 
-		if( (tdc_value>config.Hycal_Timing_Cut_Start) && (tdc_value<config.Hycal_Timing_Cut_End) ) 
+		if( (tdc_value>config->Hycal_Timing_Cut_Start) && (tdc_value<config->Hycal_Timing_Cut_End) ) 
 		{
 		    HyCalTimingCut = 1;  
 		    timing_test = tdc_value;
@@ -593,7 +603,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
     // Scintillator Timing Cut ...
     // time slot 126
     // time slot 127
-    if(config.UseScinTDCCut == 1)
+    if(config->UseScinTDCCut == 1)
     {
 	convert = 0;
 	int TF126 = 0;
@@ -604,7 +614,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 	    int tdc_ch = ( (ti_vec->at(i))>>19 )&0x7f;
 
 	    //printf("0x%x \n", ti_vec->at(i));
-	    if(config.TDC_Channel == "126")
+	    if(config->TDC_Channel == "126")
 	    {
 		//outfile<<" 126 cut..."<<endl;
 		if( (tdc_ch == 126)) 
@@ -612,8 +622,8 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		    double tdc_value = (ti_vec->at(i)) & 0x7ffff;
 		    //if( (tdc_value>7600) && (tdc_value<7800) )
 		    //if( (tdc_value>7000) && (tdc_value<10000) )
-		    //outfile<<config.TDC_Start<<"  "<<config.TDC_End<<endl;
-		    if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    //outfile<<config->TDC_Start<<"  "<<config->TDC_End<<endl;
+		    if ( (tdc_value>config->TDC_Start) && (tdc_value<config->TDC_End) )
 		    {
 			//outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 			//hhTimeCorrelation->Fill(timing_test, tdc_value);
@@ -624,7 +634,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		}
 	    }
 
-	    if(config.TDC_Channel == "127")
+	    if(config->TDC_Channel == "127")
 	    {
 		//outfile<<" 127 cut ..."<<endl;
 		if( (tdc_ch == 127)) 
@@ -632,7 +642,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		    double tdc_value = (ti_vec->at(i)) & 0x7ffff;
 		    //if( (tdc_value>7600) && (tdc_value<7800) )
 		    //if( (tdc_value>7000) && (tdc_value<10000) )
-		    if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    if ( (tdc_value>config->TDC_Start) && (tdc_value<config->TDC_End) )
 		    {
 			//outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 			convert = 1; 
@@ -641,7 +651,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		}
 	    }
 
-	    if(config.TDC_Channel == "126and127")
+	    if(config->TDC_Channel == "126and127")
 	    {
 		//outfile<< " 126 and 127 cut ..."<<endl;
 		if( (tdc_ch == 126) ) TF126 = 1;
@@ -651,7 +661,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		    double tdc_value = (ti_vec->at(i)) & 0x7ffff;
 		    //if( (tdc_value>7600) && (tdc_value<7800) )
 		    //if( (tdc_value>7000) && (tdc_value<10000) )
-		    if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    if ( (tdc_value>config->TDC_Start) && (tdc_value<config->TDC_End) )
 		    {
 			// outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 			//hhTimeCorrelation->Fill(timing_test, tdc_value);
@@ -663,7 +673,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		}
 	    }
 
-	    if(config.TDC_Channel == "126or127")
+	    if(config->TDC_Channel == "126or127")
 	    {
 		//outfile<< " 126 or 127 cut ..."<<endl;
 		if( (tdc_ch == 126) || (tdc_ch == 127) ) 
@@ -671,7 +681,7 @@ void GEMPhysHandler::GetCutFlags(int nth_event, vector<uint32_t> *ti_vec, int & 
 		    double tdc_value = (ti_vec->at(i)) & 0x7ffff;
 		    //if( (tdc_value>7600) && (tdc_value<7800) )
 		    //if( (tdc_value>7000) && (tdc_value<10000) )
-		    if ( (tdc_value>config.TDC_Start) && (tdc_value<config.TDC_End) )
+		    if ( (tdc_value>config->TDC_Start) && (tdc_value<config->TDC_End) )
 		    {
 			//outfile<<"GEMPhys::ProcessAllEvents: tdc_value:  "<<tdc_value<<endl;
 			hhTimeCorrelation->Fill(timing_test, tdc_value);
@@ -1324,7 +1334,7 @@ void GEMPhysHandler::SavePhysResults()
     // save root 
     rst_tree -> Save();
 
-    const char *str = config.phys_results_path.c_str();
+    const char *str = config->phys_results_path.c_str();
     TFile *f = new TFile(str, "recreate");
 
     // gem charatorization

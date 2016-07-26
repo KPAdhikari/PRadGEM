@@ -5,7 +5,6 @@
 #include "GEMHit.h"
 #include "GEMCluster.h"
 #include "GEMPedestal.h"
-#include "GEMConfigure.h"
 #include "GEMDataStruct.h"
 
 #include <stdint.h>

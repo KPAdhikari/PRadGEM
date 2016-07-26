@@ -143,7 +143,7 @@ private:
   double hycal_r_sec_ep_quantity[50];
 
   GEMRawDecoder *fRawDecoder;
-  GEMConfigure config;
+  GEMConfigure *config;
   GEMPedestal *ped;
   // chao
   PRadDataHandler *pHandler;

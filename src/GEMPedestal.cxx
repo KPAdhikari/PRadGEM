@@ -5,6 +5,7 @@ using namespace evio;
 
 GEMPedestal::GEMPedestal(string str)
 {
+  config.LoadConfigure();
   filename = str;
   pedestal_file = str;
   mapping = PRDMapping::GetInstance();
