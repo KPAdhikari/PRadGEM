@@ -150,9 +150,6 @@ private:
   PRadEvioParser *parser;
   PRadReconstructor *reconstruct;
 
-  //temp test
-  TH2F * hhTimeCorrelation;
-  TH1F* hTimeDiff;
   double timing_test;
   vector<HyCalHit> * pHyCalHit;  
   double totalEnergyDeposit;

@@ -126,6 +126,10 @@ public:
   TH2F * hhXDiffMatchVsEnergy;
   TH2F * hhYDiffMatchVsEnergy;
   TH1F * hNbPointsMatch;
+
+  // timing cut histograms
+  TH1F *hTimeDiff;
+  TH2F *hhTimeCorrelation;
  
   PRDMapping * fMapping;
 };

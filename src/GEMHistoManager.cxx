@@ -353,5 +353,9 @@ void GEMHistoManager::BookHistos()
   hNbPointsMatch = new TH1F("hNbPointsMatch", "# cluster match", 100, -1.5, 98.5);
   hNbPointsMatch -> GetXaxis() -> SetTitle("clusuter quantity after match per event"); 
   hNbPointsMatch -> GetYaxis() -> SetTitle("entries"); 
+  
+  // timing cut histograms
+  hhTimeCorrelation = new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
+  hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
 
 }

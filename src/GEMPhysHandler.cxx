@@ -54,19 +54,11 @@ GEMPhysHandler::GEMPhysHandler()
     InitTDCGroup();
 
     BookHistos();
-    BookTimingHistos(); 
     InitSetup();
     InitPedestal();
     InitVariables();
     InitHandler();
     InitIntermediateMollerCenterVariable();
-}
-
-void GEMPhysHandler::BookTimingHistos()
-{
-    //test
-    hhTimeCorrelation = new TH2F("hhTimeCorrelation", "HyCal vs Scin", 1000, 0, 10000, 1000, 0, 10000);
-    hTimeDiff = new TH1F("hTimeDiff", "Scin - HyCal", 1000, -5000, 5000);
 }
 
 void GEMPhysHandler::InitPedestal()
@@ -1550,7 +1542,6 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1,
 {
     if( (gem1.size() == 0) && (gem2.size() == 0))
     {
-	//pHHit->clear();
 	return 0;
     }
     if(pHHit->size() == 0) 
@@ -1563,7 +1554,7 @@ int GEMPhysHandler::HyCalGEMPosMatch( vector<GEMClusterStruct> &gem1,
     double z_gem1 = Z_gem1;
     double z_gem2 = Z_gem2;
     double z_hycal = Z_hycal;
-    double res = Delta; // a larger range, 60mm
+    double res = Delta;
 
     vector<GEMClusterStruct> res_gem1;
     vector<GEMClusterStruct> res_gem2;
