@@ -300,9 +300,6 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 		{
 		    hHyCalEnergyMoller->Fill(pHyCalHit->at(i).E);
 		}
-
-              // hycal cluster for tree
-              HyCalClusterStruct cluster = HyCalClusterStruct(pHyCalHit->at(i).x, pHyCalHit->at(i).y, pHyCalHit->at(i).E);
 	    }
 
 	    vSRSSingleEventData.clear();
@@ -1663,11 +1660,10 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     gem1.clear();
     gem2.clear();
     online_hit -> GetClusterHyCalPlusMode(gem1, gem2);
-    vector<HyCalHit> *pHHit = pHyCalHit;
 
     int nhits_gem1 = gem1.size();
     int nhits_gem2 = gem2.size();
-    int nhits_hycal = pHHit->size();
+    int nhits_hycal = pHyCalHit->size();
     if(nhits_hycal <=0 )
         return;
 
@@ -1680,13 +1676,13 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     vector<GEMClusterStruct> res_gem2;
 
     // gem efficiency in production runs
-    if( (pHHit->size() == 2) && 
-        ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
+    if( (pHyCalHit->size() == 2) && 
+        ( (pHyCalHit->at(0).E + pHyCalHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
     {
        HyCalMollerElectronQuantity += 2.0;
     }
-    else if( (pHHit->size() == 1) && 
-             ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
+    else if( (pHyCalHit->size() == 1) && 
+             ( pHyCalHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
     {
        //HyCalEpElectronQuantity += 1.0;
     }
@@ -1709,8 +1705,8 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	int n = gem1.size();
 	if(n > 0)
 	{
-	    double x_hycal = (pHHit->at(i).x)*z_gem1/z_hycal;
-	    double y_hycal = (pHHit->at(i).y)*z_gem1/z_hycal;
+	    double x_hycal = (pHyCalHit->at(i).x)*z_gem1/z_hycal;
+	    double y_hycal = (pHyCalHit->at(i).y)*z_gem1/z_hycal;
 	    for(int j=0;j<n;j++)
 	    {
                 dr = TMath::Sqrt((x_hycal - gem1[j].x)*(x_hycal - gem1[j].x)+
@@ -1719,7 +1715,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 		{
 		    res = dr;
 		    m_index = j;
-		    m_e = pHHit->at(i).E;
+		    m_e = pHyCalHit->at(i).E;
 		    match_gem1 = 1;
 		    match_gem2 = 0;
 
@@ -1734,8 +1730,8 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	n = gem2.size();
 	if(n>0)
 	{
-	    double x_hycal = (pHHit->at(i).x) *z_gem2/z_hycal;
-	    double y_hycal = (pHHit->at(i).y) *z_gem2/z_hycal;
+	    double x_hycal = (pHyCalHit->at(i).x) *z_gem2/z_hycal;
+	    double y_hycal = (pHyCalHit->at(i).y) *z_gem2/z_hycal;
 	    for(int j=0;j<n;j++)
 	    {
                 dr = TMath::Sqrt((x_hycal - gem2[j].x)*(x_hycal - gem2[j].x)+
@@ -1744,7 +1740,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 		{
 		    res = dr;
 		    m_index = j;
-		    m_e = pHHit->at(i).E;
+		    m_e = pHyCalHit->at(i).E;
 		    match_gem2 = 1;
 		    match_gem1 = 0;
 
@@ -1788,7 +1784,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
     {
 	for(int i=0;i<nhits_hycal;i++)
 	{
-	    hhHyCalClusterMap2ClusterBeforeMatch->Fill(pHHit->at(i).x, pHHit->at(i).y);
+	    hhHyCalClusterMap2ClusterBeforeMatch->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
 	}
     }
 
@@ -1815,7 +1811,7 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	    hhGEMClusterMapHyCal2GEM1->Fill( res_gem1[0].x, res_gem1[0].y);
 	    for(int i=0;i<nhits_hycal;i++)
 	    {
-		hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
+		hhHyCalClusterMapHyCal2GEM1->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
 	    }
 	}
 	else if( (nhits_gem2 == 1) && (nhits_gem1==0) &&  (nhits_hycal >=2) )
@@ -1825,24 +1821,22 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
 	    hhGEMClusterMapHyCal2GEM1->Fill( res_gem2[0].x, res_gem2[0].y);
 	    for(int i=0;i<nhits_hycal;i++)
 	    {
-		hhHyCalClusterMapHyCal2GEM1->Fill(pHHit->at(i).x, pHHit->at(i).y);
+		hhHyCalClusterMapHyCal2GEM1->Fill(pHyCalHit->at(i).x, pHyCalHit->at(i).y);
 	    }
 
 	}
     }
-
     hNbPointsMatch->Fill( res_gem1.size() + res_gem2.size() );
     hQuantityOfClustersGEMAfterMatch->Fill( res_gem1.size() + res_gem2.size() );
 
     // gem efficiency in production runs
-    if( (pHHit->size() == 2) && 
-        ( (pHHit->at(0).E + pHHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
+    if( (pHyCalHit->size() == 2) && 
+        ( (pHyCalHit->at(0).E + pHyCalHit->at(1).E) > (1000.*beamEnergy - 300.)  ) )
     {
        GEMMollerElectronQuantity += res_gem1.size() + res_gem2.size();
     }
-    else if( (pHHit->size() == 1) && 
-        ( pHHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
-    //else if( pHHit->size() == 1 ) 
+    else if( (pHyCalHit->size() == 1) && 
+        ( pHyCalHit->at(0).E > (1000.*beamEnergy - 300.)  ) )
     {
        int nn = res_gem1.size() + res_gem2.size();
        assert( nn <=1 );
@@ -1852,8 +1846,8 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
        //sectorize
        double _x_project ;
        double _y_project ;
-       float x = pHHit->at(0).x;
-       float y = pHHit->at(0).y;
+       float x = pHyCalHit->at(0).x;
+       float y = pHyCalHit->at(0).y;
        if(x > 0)
        {
            _x_project = x *z_gem2/z_hycal;
@@ -1875,13 +1869,12 @@ template<class T> void GEMPhysHandler::EvalMatchMech(T * online_hit)
        float r = TMath::Sqrt(x*x+y*y);
        int r_index = (int) (r/10.);
        r_index -= 5;
-       if(r_index >= 0)
+       if( (r_index >= 0) && (r_index<50) )
        {
            gem_r_sec_ep_quantity[r_index] += res_gem1.size() + res_gem2.size();
 	   hycal_r_sec_ep_quantity[r_index] +=1.0;
        }
     }
-
 }
 
 
