@@ -79,6 +79,9 @@ void GEMPhysHandler::InitSetup()
     O_Transfer = 253.2;
     OverlapStart = 231.2;
     Z_gem1 = 5300.+20.;//mm + chamber + screw cap thickness
+    // need to consider:
+    // ionization location depth, uncentiaty in z position
+
     Z_gem2 = 5260.+20.;//mm
     Z_hycal= 5600.;//mm
     Delta = 60.0;
