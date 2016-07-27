@@ -7,6 +7,7 @@
 
 #include <TH2F.h>
 #include <TH1F.h>
+#include <TFile.h>
 #include <TString.h>
 #include <TCanvas.h>
 
@@ -21,8 +22,7 @@ public:
   ~GEMHistoManager();
 
   virtual void BookHistos();
-
-protected:
+  virtual void WriteHistos(){};
 
 public:
   int nbDetector;
@@ -132,6 +132,7 @@ public:
   TH2F *hhTimeCorrelation;
  
   PRDMapping * fMapping;
+  TFile *histo_file;
 };
 
 #endif

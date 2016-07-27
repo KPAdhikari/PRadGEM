@@ -11,7 +11,7 @@ PRadGEMTree::PRadGEMTree()
 
     // tree
     std::cout<<"PRadGEMTree Constructor..."<<std::endl;
-    file = new TFile("PRadGEMTree.root","RECREATE");
+    file = new TFile("./results/PRadGEMTree.root","RECREATE");
     tree = new TTree("PRadGEMTree", "PRadGEMTree");
     tree -> SetDirectory(file);
     tree -> Branch("evt_id", &evt_id, "evt_id/l");
@@ -80,7 +80,7 @@ void PRadGEMTree::Fill(const unsigned long &index,
 
 void PRadGEMTree::Save()
 {
-    tree->GetCurrentFile()->Write();
+    //tree->GetCurrentFile()->Write();
     file->Write();
-    file->Save();
+    //file->Save();
 }

@@ -1322,7 +1322,9 @@ void GEMPhysHandler::SavePhysResults()
 {
     // save root 
     rst_tree -> Save();
+    histo_file->Write();
 
+    /*
     const char *str = config->phys_results_path.c_str();
     TFile *f = new TFile(str, "recreate");
 
@@ -1460,6 +1462,7 @@ void GEMPhysHandler::SavePhysResults()
     f->Write();
     f->Save();
     //f->Close();
+    */
 }
 
 int GEMPhysHandler::GEMHyCalPosMatch(int ngem, vector<GEMClusterStruct> &gem, vector<HyCalHit> *pHHit)
