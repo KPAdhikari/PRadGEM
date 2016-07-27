@@ -6,12 +6,14 @@
 
 PRadGEMTree::PRadGEMTree()
 {
-    // variable init
+   // variable init
     Clear();
 
     // tree
     std::cout<<"PRadGEMTree Constructor..."<<std::endl;
+    file = new TFile("PRadGEMTree.root","RECREATE");
     tree = new TTree("PRadGEMTree", "PRadGEMTree");
+    tree -> SetDirectory(file);
     tree -> Branch("evt_id", &evt_id, "evt_id/l");
 
     //GEMClusterStruct g1; 
@@ -78,7 +80,7 @@ void PRadGEMTree::Fill(const unsigned long &index,
 
 void PRadGEMTree::Save()
 {
-    TFile *file = new TFile("PRadGEMTree.root","RECREATE");
-    tree->Write();
-    file->Close(); 
+    tree->GetCurrentFile()->Write();
+    file->Write();
+    file->Save();
 }

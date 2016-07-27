@@ -31,6 +31,7 @@ public:
     float symm_coplanarity;
 
 private:
+    TFile *file;
     TTree *tree;
 
     unsigned long evt_id;
