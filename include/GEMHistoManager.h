@@ -22,7 +22,7 @@ public:
   ~GEMHistoManager();
 
   virtual void BookHistos();
-  virtual void WriteHistos(){};
+  virtual void WriteHistos();
 
 public:
   int nbDetector;
