@@ -6,6 +6,9 @@
 #include "PRadDataHandler.h"
 #include <vector>
 
+#define CLONE_ARRAY
+//#undef CLONE_ARRAY
+
 class TTree;
 
 class PRadGEMTree
@@ -14,9 +17,9 @@ public:
     PRadGEMTree();
     ~PRadGEMTree();
 
-    void Fill(const unsigned long &index, const std::vector<GEMClusterStruct> &gem1, 
-                                          const std::vector<GEMClusterStruct> &gem2, 
-                                          const std::vector<HyCalHit> &hycal);
+    void Fill(const unsigned long &index, std::vector<GEMClusterStruct> &gem1, 
+                                          std::vector<GEMClusterStruct> &gem2, 
+                                          std::vector<HyCalHit> &hycal);
  
     void Save();
     void Clear();
@@ -35,11 +38,37 @@ private:
     TTree *tree;
 
     unsigned long evt_id;
-
+#ifdef CLONE_ARRAY
     TClonesArray *a_gem1;
     TClonesArray *a_gem2;
     TClonesArray *a_hycal;
-
+#else   
+    // different fill method
+    int gem1_nhit;
+    float gem1_x[100];
+    float gem1_y[100];
+    float gem1_x_charge[100];
+    float gem1_y_charge[100];
+    float gem1_energy[100];
+    float gem1_z[100];
+    int gem1_x_size[100];
+    int gem1_y_size[100];
+    
+    int gem2_nhit;
+    float gem2_x[100];
+    float gem2_y[100];
+    float gem2_x_charge[100];
+    float gem2_y_charge[100];
+    float gem2_energy[100];
+    float gem2_z[100];
+    int gem2_x_size[100];
+    int gem2_y_size[100];
+    
+    int hycal_nhit;
+    float hycal_x[100];
+    float hycal_y[100];
+    float hycal_energy[100];
+#endif
 };
 
 #endif

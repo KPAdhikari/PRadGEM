@@ -16,14 +16,40 @@ PRadGEMTree::PRadGEMTree()
     tree -> SetDirectory(file);
     tree -> Branch("evt_id", &evt_id, "evt_id/l");
 
+#ifdef CLONE_ARRAY
     //GEMClusterStruct g1; 
     a_gem1 = new TClonesArray("GEMClusterStruct");
     a_gem2 = new TClonesArray("GEMClusterStruct");
     a_hycal = new TClonesArray("HyCalClusterStruct");
-
     tree -> Branch("gem1", &a_gem1);
     tree -> Branch("gem2", &a_gem2);
     tree -> Branch("hycal", &a_hycal);
+#else
+    tree -> Branch("gem1_nhit", &gem1_nhit, "gem1_nhit/I");
+    tree -> Branch("gem1_x", &gem1_x, "gem1_x[gem1_nhit]/F");
+    tree -> Branch("gem1_y", &gem1_y, "gem1_y[gem1_nhit]/F");
+    tree -> Branch("gem1_x_charge", &gem1_x_charge, "gem1_x_charge[gem1_nhit]/F");
+    tree -> Branch("gem1_y_charge", &gem1_y_charge, "gem1_y_charge[gem1_nhit]/F");
+    tree -> Branch("gem1_energy", &gem1_energy, "gem1_energy[gem1_nhit]/F");
+    tree -> Branch("gem1_z", &gem1_z, "gem1_z[gem1_nhit]/F");
+    tree -> Branch("gem1_x_size", &gem1_x_size, "gem1_x_size[gem1_nhit]/I");
+    tree -> Branch("gem1_y_size", &gem1_y_size, "gem1_y_size[gem1_nhit]/I");
+
+    tree -> Branch("gem2_nhit", &gem2_nhit, "gem2_nhit/I");
+    tree -> Branch("gem2_x", &gem2_x, "gem2_x[gem2_nhit]/F");
+    tree -> Branch("gem2_y", &gem2_y, "gem2_y[gem2_nhit]/F");
+    tree -> Branch("gem2_x_charge", &gem2_x_charge, "gem2_x_charge[gem2_nhit]/F");
+    tree -> Branch("gem2_y_charge", &gem2_y_charge, "gem2_y_charge[gem2_nhit]/F");
+    tree -> Branch("gem2_energy", &gem2_energy, "gem2_energy[gem2_nhit]/F");
+    tree -> Branch("gem2_z", &gem2_z, "gem2_z[gem2_nhit]/F");
+    tree -> Branch("gem2_x_size", &gem2_x_size, "gem2_x_size[gem2_nhit]/I");
+    tree -> Branch("gem2_y_size", &gem2_y_size, "gem2_y_size[gem2_nhit]/I");
+    
+    tree -> Branch("hycal_nhit", &hycal_nhit, "hycal_nhit/I");
+    tree -> Branch("hycal_x", &hycal_x, "hycal_x[hycal_nhit]/F");
+    tree -> Branch("hycal_y", &hycal_y, "hycal_y[hycal_nhit]/F");
+    tree -> Branch("hycal_energy", &hycal_energy, "hycal_energy[hycal_nhit]/F");
+#endif
 
     // independent physics object
     tree -> Branch("angular_resolution_from_moller1", &angular_resolution_from_moller1, "angular_resolution_from_moller1/F");
@@ -51,17 +77,17 @@ void PRadGEMTree::Clear()
 
 
 void PRadGEMTree::Fill(const unsigned long &index, 
-                       const std::vector<GEMClusterStruct> &gem1 , 
-		       const std::vector<GEMClusterStruct> &gem2, 
-		       const std::vector<HyCalHit> &hycal)
+                       std::vector<GEMClusterStruct> &gem1 , 
+		       std::vector<GEMClusterStruct> &gem2, 
+		       std::vector<HyCalHit> &hycal)
 {
-    a_gem1->Clear();
-    a_gem2->Clear();
-    a_hycal->Clear();
     evt_id = index;
 
-    int i = 0;
-
+#ifdef CLONE_ARRAY
+    a_gem1 -> ExpandCreate(gem1.size());
+    a_gem2 -> ExpandCreate(gem2.size());
+    a_hycal -> ExpandCreate(hycal.size());
+   int i = 0;
     for(i=0; i< gem1.size();i++)
     {
         new((*a_gem1)[i]) GEMClusterStruct(gem1[i]);
@@ -74,8 +100,50 @@ void PRadGEMTree::Fill(const unsigned long &index,
     {
        new((*a_hycal)[i]) HyCalClusterStruct(hycal[i].x, hycal[i].y, hycal[i].E); 
     }
-
     tree->Fill();
+    a_gem1->Clear("C");
+    a_gem2->Clear("C");
+    a_hycal->Clear("C");
+#else
+    int i = 0;
+    gem1_nhit = gem1.size();
+    for(i=0; i< gem1.size();i++)
+    {
+       gem1_x[i] = gem1[i].x; 
+       gem1_y[i] = gem1[i].y; 
+       gem1_x_charge[i] = gem1[i].x_charge; 
+       gem1_y_charge[i] = gem1[i].y_charge; 
+       gem1_energy[i] = gem1[i].energy; 
+       gem1_z[i] = gem1[i].z; 
+       gem1_x_size[i] = gem1[i].x_size; 
+       gem1_y_size[i] = gem1[i].y_size; 
+ 
+    }
+
+    gem2_nhit = gem2.size();
+    for(i=0;i< gem2.size();i++)
+    {
+       gem2_x[i] = gem2[i].x; 
+       gem2_y[i] = gem2[i].y; 
+       gem2_x_charge[i] = gem2[i].x_charge; 
+       gem2_y_charge[i] = gem2[i].y_charge; 
+       gem2_energy[i] = gem2[i].energy; 
+       gem2_z[i] = gem2[i].z; 
+       gem2_x_size[i] = gem2[i].x_size; 
+       gem2_y_size[i] = gem2[i].y_size; 
+ 
+    }
+
+    hycal_nhit = hycal.size();
+    for(i=0;i< hycal.size(); i++)
+    {
+        hycal_x[i] = hycal[i].x;
+	hycal_y[i] = hycal[i].y;
+	hycal_energy[i] = hycal[i].E;
+    }
+    tree->Fill();
+#endif
+ 
 }
 
 void PRadGEMTree::Save()

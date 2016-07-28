@@ -285,8 +285,19 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 	    ntrigger_current_file +=1.0;
 	    nTotalEvents += 1.0;
 
-	    pHandler->Decode(chan.getBuffer());
-	    pHyCalHit =& reconstruct->CoarseHyCalReconstruct(pHandler->GetEventCount() - 1); 
+	    //pHandler->Decode(chan.getBuffer());
+	    //pHyCalHit =& reconstruct->CoarseHyCalReconstruct(pHandler->GetEventCount() - 1); 
+	    vector<HyCalHit> hit;
+	    vector<unsigned short> time;
+	    for(int i=0;i<3;i++)
+	    {
+	        time.push_back(i);
+	    }
+	    for(int i=0;i<3;i++)
+	    {
+	        hit.push_back(HyCalHit(45., 56.,1200, time));
+	    }
+	    pHyCalHit = &hit;
 
 	    hQuantityOfClustersHyCal->Fill(pHyCalHit->size());
 	    for(int i=0;i<pHyCalHit->size(); i++)
@@ -438,12 +449,12 @@ int GEMPhysHandler::ProcessAllEvents(int evtID )
 #endif
 
 	    // Fill histos
-	    ComputeGEMOffsets(&online_hit);
-            EvalMatchMech(&online_hit);
-	    ProcessEp(&online_hit);
-	    ProcessMoller(&online_hit);
-	    ProcessMollerAfterCorrection(&online_hit);
-	    GetGEMClusterMapHyCalCoor(&online_hit);
+	    //ComputeGEMOffsets(&online_hit);
+            //EvalMatchMech(&online_hit);
+	    //ProcessEp(&online_hit);
+	    //ProcessMoller(&online_hit);
+	    //ProcessMollerAfterCorrection(&online_hit);
+	    //GetGEMClusterMapHyCalCoor(&online_hit);
 	    CharactorizeGEM(&online_hit);
 	}
 
