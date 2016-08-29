@@ -1,0 +1,37 @@
+Section1);
+                  Potential Traps while using this program
+    1), Trap #1:
+        While calculating GEM Spatial resolution in PRadMoller class, please 
+*DO NOT* FORGET to update your latest moller center value. Program is using
+moller center as the offset between gem plane and beam line.
+
+    In PRadMoller class,  gem_pos_res->SetOrigin();
+
+    2), Trap #2:
+        There's a MollerGEMPosRes class handler as a private member resides in 
+PRadMoller class, *DO NOT* forget to use this handler to update your lastest 
+moller center value.
+
+    3), Trap #3:
+        and beam_energy also has a hard-coded value inside PRadMoller class, 
+please *DO NOT* forget to update correct beam energy before using PRadMoller class.
+    
+    in GEMPhysics class, moller_analyzer->SetBeamEnergy();
+
+    4), Trap #4:
+        Before using HyCalGEMPosMatch tool class, please *DO NOT* forget to update
+your expected mathing criteria using its own handler. There's a hard-coded value
+inside HyCalGemPosMatch class, which is very loose, 60mm.
+
+    5), Trap #5:
+        GEMEfficiency calculation is controled by #define macros, not by config 
+file. By doing this because efficiency is independent of other analysis, using 
+#define macros to remove un-necessary code parts to speed up program. 
+
+    6), Trap #6:
+       In GEMPhysics, *DO NOT* forget to set your correct gem offsets, using 
+gem_coord handler. While in GEMCoord class, a default value has been hard-
+coded for gem offsets. (This is a trap, has been removed. users have to set his
+own gem offsets).
+    
+    in GEMPhysics class, gem_coord->SetOffsetX(); SetOffsetY();
