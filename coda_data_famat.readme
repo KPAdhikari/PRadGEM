@@ -1,0 +1,60 @@
+rough structure:
+
+      coda go event:  [length include leghtword itself] [header length =2]
+
+            [inside this level, 
+	    length not include 
+	    length word itself]
+
+coda prestart event: [header length = 2]
+
+            [...]
+
+      physics event: [header length = 2]
+             ------------Event ID / evio info : event 1
+	     ------------ROC  ID 1
+
+	            -----Bank ID 1
+		    -----Bank ID 2
+		    -----....
+		    -----Bank ID N
+
+	     ------------ROC  ID 2
+
+	            -----Bank ID 1
+		    -----Bank ID 2
+		    -----....
+		    -----Bank ID N
+
+	     ------------ROC  ID 3
+
+	            -----Bank ID 1
+		    -----Bank ID 2
+		    -----....
+		    -----Bank ID N
+
+             ------------Event ID / evio info : event 2
+	     ------------ROC  ID 1
+
+	            -----Bank ID 1
+		    -----Bank ID 2
+		    -----....
+		    -----Bank ID N
+
+	     ------------ROC  ID 2
+
+	            -----Bank ID 1
+		    -----Bank ID 2
+		    -----....
+		    -----Bank ID N
+
+	     ------------ROC  ID 3
+
+	            -----Bank ID 1
+		    -----Bank ID 2
+		    -----....
+		    -----Bank ID N
+
+
+
+to be finished...

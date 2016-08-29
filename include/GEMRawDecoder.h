@@ -19,36 +19,59 @@
 #define __RAW_DECODER_H__
 
 #include <map>
+#include <unordered_map>
 #include <vector>
-#include <algorithm>
 
-#include <TH1F.h>
-
-#include "PRDMapping.h"
+class TH1F;
+class GEMMapping;
 
 using namespace std;
 
 class GEMRawDecoder
 {
 public:
-  GEMRawDecoder( vector<int> );
-  GEMRawDecoder( unsigned int *, int);
+  GEMRawDecoder();
+  GEMRawDecoder( vector<int> &);
+  GEMRawDecoder( unsigned int *, int  &);
   ~GEMRawDecoder();
 
-  void Decode();
-  map<int, map<int, vector<int> > > GetDecoded();
-  map<int, map<int, TH1F* > > GetAPVRawHisto();
+  void SwitchEndianess(unsigned int *, int &);
+  void CheckInactiveChannel(int , unsigned int *);
+  void Decode(vector<int> &);
+  void Decode(unsigned int *, int &);
+  void DecodeFEC(vector<int> &);
+  void DecodeFEC(unsigned int *, int &);
+  void FillAPVRaw(vector<int> &, unsigned int);
+
+  map<int, map<int, vector<int> > > & GetDecoded();
+  map<int, map<int, TH1F* > > & GetAPVRawHisto();
+  unordered_map<int, vector<int> >  & GetFECDecoded();
+  unordered_map<int, TH1F* >  & GetFECAPVRawHisto();
+
   void Word32ToWord16(unsigned int *, unsigned int*, unsigned int*);
 
-  int IsAdcChannelActive(int, int );
+  int IsAdcChannelActive(int &, int & );
+  void Clear();
+  void clearMaps();
+  void clearHistos();
+  void clearFECMaps();
+  void clearFECHistos();
+
 
 private:
-  unsigned int * buf;
-  int fBuf;
+  int  fBuf;
+
+  int nfecID;
+  int nadcCh;
+  int apvIndex;
+
   map<int, map<int, vector<int> > > mAPVRawSingleEvent;
   map<int, map<int, TH1F* > > mAPVRawHisto;
+  unordered_map<int, vector<int> > mFecApvEvent;
+  unordered_map<int, TH1F* >  mFecApvHisto;
 
-  PRDMapping* mapping;
+
+  GEMMapping* mapping;
 
   vector<int> vActiveAdcChannels;
 };

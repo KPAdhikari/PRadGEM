@@ -1,82 +1,62 @@
 #ifndef __GEMPEDESTAL_H__
 #define __GEMPEDESTAL_H__
-
-#include <iostream>
 #include <fstream>
+#include <unordered_map>
 #include <map>
 #include <vector>
 #include <set>
 #include <string>
-#include <cassert>
-
-#include <arpa/inet.h>
-
 #include <TH1F.h>
 #include <TFile.h>
-#include <TCanvas.h>
 
-#include <stdio.h> //for getchar()
-
-//evio
-#include "evioUtil.hxx"
-#include "evioFileChannel.hxx"
-
-#include "GEMRawDecoder.h"
-#include "PRDMapping.h"
-#include "GEMRawPedestal.h"
-
-#include "GEMConfigure.h"
-
-//using namespace std;
-//using namespace evio;
+class GEMRawDecoder;
+class GEMMapping;
+class GEMRawPedestal;
+class GEMConfigure;
 
 class GEMPedestal
 {
 public:
-  GEMPedestal(string str);
-  ~GEMPedestal();
+    GEMPedestal();
+    ~GEMPedestal();
 
-  void BookHistos();
+    void BookHistos();
+    void SetFile();
 
-  int ProcessAllEvents(int evtID = -1);
-  void ComputePedestal();
-  void SavePedestalFile();
-  void LoadPedestal();
-  void Delete();
-  vector<Float_t> GetAPVNoises(Int_t);
-  vector<Float_t> GetAPVOffsets(Int_t);
+    int AccumulateEvent(int evtID, std::unordered_map<int, std::vector<int> > & event);
+    void ComputePedestal();
+    void SavePedestalFile();
+    void LoadPedestal();
+    void Delete();
+    std::vector<Float_t> GetAPVNoises(int);
+    std::vector<Float_t> GetAPVOffsets(int);
 
 private:
-  vector<int> vSRSSingleEventData;
-  map<int, map<int, vector<int> > > mAPVRawTSs;
+    std::set<int> FECs;
+    int NCH;
+    int nNbofAPVs;
 
-  set<int> FECs;  // FEC ID
-  Int_t NCH;
-  Int_t nNbofAPVs;
+    std::string filename;
 
-  string filename;
-  string pedestal_file;
+    ifstream file;
 
-  ifstream file;
+    std::vector<TH1F*> vStripOffsetHistos;
+    std::vector<TH1F*> vStripNoiseHistos;
+    std::vector<TH1F*> vApvPedestalOffset;
+    std::vector<TH1F*> vApvPedestalNoise;
 
-  vector<TH1F*> vStripOffsetHistos;
-  vector<TH1F*> vStripNoiseHistos;
-  vector<TH1F*> vApvPedestalOffset;
-  vector<TH1F*> vApvPedestalNoise;
+    TH1F* hAllStripNoise;
+    TH1F* hAllXStripNoise;
+    TH1F* hAllYStripNoise;
 
-  TH1F* hAllStripNoise;
-  TH1F* hAllXStripNoise;
-  TH1F* hAllYStripNoise;
+    // not care for now, will implement later if interested
+    //TH1F* hAllStripOffset;
+    //TH1F* hAllXStripOffset;
+    //TH1F* hAllYStripOffset;
 
-  // not care for now, will implement later if interested
-  //TH1F* hAllStripOffset;
-  //TH1F* hAllXStripOffset;
-  //TH1F* hAllYStripOffset;
-
-  PRDMapping * mapping;
-
-  //GEMRawDecoder *fRawDecoder;
-  GEMConfigure config;
+    GEMMapping * mapping;
+    GEMConfigure *config;
+    GEMRawPedestal *eventPedestal;
 };
 
 #endif

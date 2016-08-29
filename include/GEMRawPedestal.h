@@ -1,61 +1,52 @@
 #ifndef __GEMRAWPEDESTAL_H__
 #define __GEMRAWPEDESTAL_H__
+#include <TString.h>
+#include <map>
+#include <unordered_map>
+#include <vector>
 
-#include <TMath.h>
-#include <TH1F.h>
-#include "TCanvas.h"
-
-#include "PRDMapping.h"
-
-#include <iostream>
-#include <cassert>
+class GEMMapping;
 
 class GEMRawPedestal
 {
 public:
-  GEMRawPedestal( map<int, map<int, vector<int> > > );
-  ~GEMRawPedestal();
+    GEMRawPedestal();
+    GEMRawPedestal( std::unordered_map<int, std::vector<int> >);
+    ~GEMRawPedestal();
 
-  void ClearMap();
-  void ApvEventDecode();
-  void ComputeApvPedestal(int, int);
-  void ComputeEventPedestal();
-  //int  IsChannelActive(int, int); //decoder already checked this, not necessary any more
-
-  //void LoadPedestalData(const char* filename);
-  //void SavePedestalRunHistos();
-  void PrintEventPedestal(); // for debug
-
-  Float_t GetStripNoise(int fecid, int adc_ch, int channelID);
-  Float_t GetStripOffset(int fecid, int adc_ch, int channelID);
-  
-  Float_t GetStripMeanOffset(int fecid, int adc_ch, int channelID);
+    void ClearMap();
+    void ClearSingleEvent();
+    void ClearStripRMS();
+    void ClearStripOffset();
+    void ApvEventDecode();
+    void ComputeApvPedestal(int);
+    void ComputeEventPedestal();
+    void ComputeEventPedestal(std::unordered_map<int, std::vector<int> >);
+    void PrintEventPedestal(); // for debug
+    float GetStripNoise(int apvindex, int channelID);
+    float GetStripOffset(int apvindex, int channelID);
+    int CheckApvTimeSample();
 
 private:
-  Float_t fApvHeaderLevel;
-  Int_t NCH;
-  Int_t fTimeSample;
+    float fApvHeaderLevel;
+    int NCH;
+    int fTimeSample;
 
-  //Kondo's new fix
-  Int_t fAPVID;
-  TString fAPVStatus;
-  //Int_t fCurrentEventTimeSample;
-  Int_t fFECID;
-  Int_t fADCCh;
+    int fAPVID;
+    TString fAPVStatus;
+    int fFECID;
+    int fADCCh;
 
-  PRDMapping* mapping;
+    GEMMapping* mapping;
 
-  map<int, map<int, vector<int> > > mSrsSingleEvent;
-  //vector<int> vActiveAdcChannels;
-  vector<int> vSingleApvData;
-  map<int, map<int, vector<Float_t> > > mStripOffset;
-  map<int, map<int, vector<Float_t> > > mStripRMS;
+    std::unordered_map<int, std::vector<int> > mSrsSingleEvent;
+    std::vector<int> vSingleApvData;
+    std::map<int, std::vector<float> > mStripOffset;
+    std::map<int, std::vector<float> > mStripRMS;
 
-  vector<Float_t> vCommonModeOffset;
-  vector<Float_t> vCommonModeOffset_split;
-  multimap<Int_t, Float_t> mApvTimeBinData;
-
-
+    std::vector<float> vCommonModeOffset;
+    std::vector<float> vCommonModeOffset_split;
+    std::multimap<int, float> mApvTimeBinData;
 };
 
 #endif
