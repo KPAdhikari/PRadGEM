@@ -38,7 +38,7 @@ public:
     double & OpenAngle();
     double & Coplanarity();
     std::vector<std::pair<double, double> > & EnergyAngle();
-    std::vector<std::pair<double, double> > & Positions();
+    std::vector<std::pair<int, std::pair<double, double> > > & Positions();
     std::pair<double, double> & MollerCenter();
     MollerGEMSpatialRes * GetSpatialResHandler();
 
@@ -52,11 +52,11 @@ private:
     double open_angle;
     double coplanarity;
     std::vector< std::pair<double, double > > energy_angle;
-    std::vector< std::pair<double, double > > positions;
+    std::vector< std::pair<int, std::pair<double, double> > > positions;
     // moller center
     // note: moller center is on z=5230 plane
     std::pair<double , double > moller_center;
-    std::vector< std::pair<double, double> > previous_positions;
+    std::vector< std::pair<int, std::pair<double, double> > > previous_positions;
 };
 
 #endif

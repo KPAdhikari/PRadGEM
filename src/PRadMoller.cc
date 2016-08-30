@@ -20,8 +20,8 @@ PRadMoller::PRadMoller()
 {
     beam_energy = 1100;//1.1GeV
     previous_positions.reserve(2);
-    previous_positions.emplace_back(Undefined_Value, Undefined_Value);
-    previous_positions.emplace_back(Undefined_Value, Undefined_Value);
+    previous_positions.emplace_back(0, make_pair<double, double>(Undefined_Value, Undefined_Value));
+    previous_positions.emplace_back(0, make_pair<double, double>(Undefined_Value, Undefined_Value));
     gem_pos_res = new MollerGEMSpatialRes();
 }
 
@@ -109,11 +109,15 @@ void PRadMoller::Process()
     scatt_angle1 = RadToDec( TMath::ATan(r(gem->at(0).x, gem->at(0).y)/gem->at(0).z) );
     scatt_angle2 = RadToDec( TMath::ATan(r(gem->at(1).x, gem->at(1).y)/gem->at(1).z) );
     open_angle = scatt_angle1 + scatt_angle2;
+
     coplanarity = GetCoplanarity();    
+    
     energy_angle.emplace_back(gem->at(0).energy, scatt_angle1);
     energy_angle.emplace_back(gem->at(1).energy, scatt_angle2);
-    positions.emplace_back(gem->at(0).x, gem->at(0).y);
-    positions.emplace_back(gem->at(1).x, gem->at(1).y);
+    
+    positions.emplace_back(gem->at(0).chamber_id, make_pair<double, double>(gem->at(0).x, gem->at(0).y));
+    positions.emplace_back(gem->at(1).chamber_id, make_pair<double, double>(gem->at(1).x, gem->at(1).y));
+
     GetMollerCenter();
     //-----------------------------------------------------------
     // computed moller center history:
@@ -275,7 +279,7 @@ vector<pair<double, double> > & PRadMoller::EnergyAngle()
     return energy_angle;
 }
 
-vector<pair<double, double> > & PRadMoller::Positions()
+vector<pair<int, pair<double, double> > > & PRadMoller::Positions()
 {
     return positions;
 }
@@ -290,7 +294,7 @@ void PRadMoller::GetMollerCenter()
     assert(previous_positions.size() == 2);
     if(positions.size() != 2)
 	return;
-    if(previous_positions[0].first == Undefined_Value){
+    if(previous_positions[0].second.first == Undefined_Value){
 	previous_positions.clear();
 	previous_positions.push_back(positions[0]);
 	previous_positions.push_back(positions[1]);
@@ -306,14 +310,14 @@ void PRadMoller::GetMollerCenter()
 
 void PRadMoller::GetIntersection()
 {
-    double _x1 = previous_positions[0].first;
-    double _y1 = previous_positions[0].second;
-    double _x2 = previous_positions[1].first;
-    double _y2 = previous_positions[1].second;
-    double x1 = positions[0].first;
-    double y1 = positions[0].second;
-    double x2 = positions[1].first;
-    double y2 = positions[1].second;
+    double _x1 = previous_positions[0].second.first;
+    double _y1 = previous_positions[0].second.second;
+    double _x2 = previous_positions[1].second.first;
+    double _y2 = previous_positions[1].second.second;
+    double x1 = positions[0].second.first;
+    double y1 = positions[0].second.second;
+    double x2 = positions[1].second.first;
+    double y2 = positions[1].second.second;
 
     double a1 = _y1 - _y2;
     double b1 = _x2 - _x1;

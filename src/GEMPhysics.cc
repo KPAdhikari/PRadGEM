@@ -12,7 +12,7 @@
 #include "PRadEP.h"
 #include "HyCalGEMMatch.h"
 
-#define PROD_GEM_OFFSET
+//#define PROD_GEM_OFFSET
 
 using namespace std;
 

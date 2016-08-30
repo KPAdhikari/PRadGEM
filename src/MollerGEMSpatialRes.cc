@@ -18,19 +18,19 @@ MollerGEMSpatialRes::~MollerGEMSpatialRes()
 {
 }
 
-void MollerGEMSpatialRes::Process(vector<pair<double, double> > in)
+void MollerGEMSpatialRes::Process(vector<pair<int, pair<double, double> > >in)
 {
     Reset();
     // from far map near leads to a smaller diff
-    // from near map for leads to a larger diff
+    // from near map far leads to a larger diff
     // which one to use?
-    if( r(in[1].first, in[1].second) < r(in[0].first, in[0].second) ){
-	SetPoint1(in[0]);
-	SetPoint2(in[1]);
+    if( r(in[1].second.first, in[1].second.second) < r(in[0].second.first, in[0].second.second) ){
+	SetPoint1(in[0].second);
+	SetPoint2(in[1].second);
     }
     else{
-	SetPoint1(in[1]);
-	SetPoint2(in[0]);
+	SetPoint1(in[1].second);
+	SetPoint2(in[0].second);
     }
     p1.first -= x_origin;
     p1.second -= y_origin;

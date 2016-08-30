@@ -82,6 +82,7 @@ void GEMTree::InitPhysicsTree()
     moller_tree->Branch("moller_scatt_energy2", &moller_scatt_energy2, "moller_scatt_energy2/F");
     moller_tree->Branch("scatt_x", scatt_x, "scatt_x[nCluster]/F");
     moller_tree->Branch("scatt_y", scatt_y, "scatt_y[nCluster]/F");
+    moller_tree->Branch("detector_id", detector_id, "detector_id[nCluster]/I");
     moller_tree->Branch("coplanarity", &coplanarity, "coplanarity/F");
     moller_tree->Branch("open_angle", &open_angle, "open_angle/F");
     moller_tree->Branch("scatt_energy", scatt_energy, "scatt_energy[nCluster]/F");
@@ -159,7 +160,7 @@ void GEMTree::PushMoller(PRadMoller * moller)
     else {
 	return;
     }
-    vector<pair<double, double> > pos = moller->Positions();
+    vector<pair<int, pair<double, double> > > pos = moller->Positions();
     open_angle = moller->OpenAngle();
     coplanarity = moller->Coplanarity();
     int ii = 0;
@@ -168,8 +169,9 @@ void GEMTree::PushMoller(PRadMoller * moller)
 	scatt_angle[ii] = i.second;
 	scatt_energy[ii] = i.first;
 	//temp
-	scatt_x[ii] = pos[ii].first;
-	scatt_y[ii] = pos[ii].second;
+	scatt_x[ii] = pos[ii].second.first;
+	scatt_y[ii] = pos[ii].second.second;
+	detector_id[ii] = pos[ii].first;
 	ii++;
     }
     moller_scatt_angle1 = scatt_angle[0];
@@ -386,11 +388,11 @@ void GEMTree::PushProdOffset(int i, PRadMoller * moller)
 	    prod_gem1_angle2 = ea[1].second;
 	    prod_gem1_coplanarity = moller->Coplanarity();
 	    prod_gem1_open_angle = moller->OpenAngle();
-	    vector<pair<double, double> > pos = moller->Positions();
-	    prod_gem1_scattx[0] = pos[0].first;
-	    prod_gem1_scatty[0] = pos[0].second;
-	    prod_gem1_scattx[1] = pos[1].first;
-	    prod_gem1_scatty[1] = pos[1].second;
+	    vector<pair<int, pair<double, double> > > pos = moller->Positions();
+	    prod_gem1_scattx[0] = pos[0].second.first;
+	    prod_gem1_scatty[0] = pos[0].second.second;
+	    prod_gem1_scattx[1] = pos[1].second.first;
+	    prod_gem1_scatty[1] = pos[1].second.second;
 	}
 	else if( i==1){
 	    empty_prod_gem2 = false;
@@ -403,11 +405,11 @@ void GEMTree::PushProdOffset(int i, PRadMoller * moller)
 	    prod_gem2_angle2 = ea[1].second;
 	    prod_gem2_coplanarity = moller->Coplanarity();
 	    prod_gem2_open_angle = moller->OpenAngle();
-	    vector<pair<double, double> > pos = moller->Positions();
-	    prod_gem2_scattx[0] = pos[0].first;
-	    prod_gem2_scatty[0] = pos[0].second;
-	    prod_gem2_scattx[1] = pos[1].first;
-	    prod_gem2_scatty[1] = pos[1].second;
+	    vector<pair<int, pair<double, double> > > pos = moller->Positions();
+	    prod_gem2_scattx[0] = pos[0].second.first;
+	    prod_gem2_scatty[0] = pos[0].second.second;
+	    prod_gem2_scattx[1] = pos[1].second.first;
+	    prod_gem2_scatty[1] = pos[1].second.second;
 	}
     }
 }

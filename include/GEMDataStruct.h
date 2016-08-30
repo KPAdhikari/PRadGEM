@@ -32,6 +32,7 @@ struct GEMClusterStruct
 	z = 0;
 	x_size = 0;
 	y_size = 0;
+	chamber_id = -99;
     }
 
     GEMClusterStruct( const GEMClusterStruct & gem_cluster)
@@ -41,7 +42,8 @@ struct GEMClusterStruct
 	energy(gem_cluster.energy), 
 	z(gem_cluster.z), 
 	x_size(gem_cluster.x_size),
-	y_size(gem_cluster.y_size){}
+	y_size(gem_cluster.y_size),
+	chamber_id(gem_cluster.chamber_id){}
 
     void SetEnergy(float e) {energy = e;}
     void SetX(float xp) {x = xp;}

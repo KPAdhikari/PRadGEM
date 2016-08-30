@@ -18,7 +18,7 @@ public:
     void SetZ(double);
     double r(double, double);
     void Reset();
-    void Process(std::vector<std::pair<double, double> > );
+    void Process(std::vector<std::pair<int, std::pair<double, double> > >);
     void _Process();
     std::pair<double, double>& GetDiff();
 

@@ -109,6 +109,7 @@ private:
     float coplanarity;
     float scatt_x[_ncluster];
     float scatt_y[_ncluster];
+    int detector_id[_ncluster];
     float q_square;
 
     // offset from calibration runs
