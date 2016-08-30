@@ -498,63 +498,99 @@ static Bool_t CompareClusterADCs( TObject *obj1, TObject *obj2) {
     return compare ;
 }
 
+#define NOISE_SIGMA 14
+
 void GEMOnlineHitDecoder::ComputeClusters()
 {
-    map < TString, list <GEMHit*> >::const_iterator  hitsFromPlane_itr ;
+    map< TString, list<GEMHit*> >::iterator plane_hits_it;
 
-    for (hitsFromPlane_itr = fListOfHitsCleanFromPlane.begin(); hitsFromPlane_itr != fListOfHitsCleanFromPlane.end(); ++hitsFromPlane_itr) 
+    for(plane_hits_it=fListOfHitsCleanFromPlane.begin(); plane_hits_it!=fListOfHitsCleanFromPlane.end(); ++plane_hits_it)
     {
-	TString plane =  (*hitsFromPlane_itr).first ;
-	list <GEMHit*> hitsFromPlane = (*hitsFromPlane_itr).second ; 
-	hitsFromPlane.sort(CompareStripNo) ;
-	Int_t listSize = hitsFromPlane.size() ;
+        TString plane = (*plane_hits_it).first;
+	list<GEMHit*> hitsFromPlane = (*plane_hits_it).second;
+	hitsFromPlane.sort(CompareStripNo);
+	Int_t listSize = hitsFromPlane.size();
 
-	if (listSize < fMinClusterSize) {
-	    fIsGoodClusterEvent = kFALSE ;
-	    continue ;
+	if( listSize < fMinClusterSize){
+	    fIsGoodClusterEvent = kFALSE;
+	    continue;
 	}
 
-	Int_t previousStrip = -2 ;
-	Int_t clusterNo = -1 ;
-	map<Int_t, GEMCluster *> clustersMap ;
-	list <GEMHit *>::const_iterator hit_itr ;
+        ComputePlaneCluster(plane, hitsFromPlane);
 
-	for (hit_itr = hitsFromPlane.begin(); hit_itr != hitsFromPlane.end(); hit_itr++) {
-	    GEMHit * hit =  * hit_itr ; 
-	    Int_t currentStrip = hit->GetStripNo() ;
+	fListOfClustersCleanFromPlane[plane].sort(CompareClusterADCs);
+	hitsFromPlane.clear();
+    }
+}
 
-	    // remove first 16 strips (apv index 0 on X side) and last 16 strips (apv index 10 on X side)
-	    if( plane.Contains("X") && ( (currentStrip<16) || (currentStrip > 1391) )  ) continue;
+void GEMOnlineHitDecoder::ComputePlaneCluster(TString &plane, list<GEMHit*> &hitsFromPlane)
+{
+    list<GEMHit*>::iterator hit_it = hitsFromPlane.begin();
+    list<GEMHit*>::iterator next = hit_it;
 
-	    Int_t apvIndexOnPlane = hit->GetAPVIndexOnPlane();
-	    if(currentStrip != (previousStrip + 1)) {
-		clusterNo++ ;
-	    }
-	    if(!clustersMap[clusterNo]) {
-		clustersMap[clusterNo] = new GEMCluster(fMinClusterSize, fMaxClusterSize, fIsClusterMaxOrTotalADCs) ;
-		clustersMap[clusterNo]->SetNbAPVsFromPlane(hit->GetNbAPVsFromPlane());
-		clustersMap[clusterNo]->SetAPVIndexOnPlane(hit->GetAPVIndexOnPlane());
-		clustersMap[clusterNo]->SetPlaneSize(hit->GetPlaneSize());
-		clustersMap[clusterNo]->SetPlane(hit->GetPlane());
-	    }
-	    clustersMap[clusterNo]->AddHit(hit) ;
-	    previousStrip = currentStrip;
+    for(hit_it;hit_it!=hitsFromPlane.end();++hit_it)
+    {
+	++next;
+	// remove first 16 strips( apv index 0 on X side) and last 16 strips (apv index 10 on X side)
+	if( plane.Contains("X")){
+	    if( (*hit_it)->GetStripNo() < 16 )
+		continue;
+	    if( (*hit_it)->GetStripNo() > 1391 )
+		continue;
+	    if( (*next)->GetStripNo()>1391)
+		next = hitsFromPlane.end();
 	}
 
-	map<Int_t, GEMCluster *>::const_iterator  cluster_itr ;
-	for (cluster_itr = clustersMap.begin(); cluster_itr != clustersMap.end(); cluster_itr++) {
-	    GEMCluster * cluster = ( * cluster_itr ).second ;
-	    if (!cluster->IsGoodCluster()) {
-		delete cluster ;
-		continue ;
-	    }
-	    cluster->ComputeClusterPosition() ;
-	    fListOfClustersCleanFromPlane[plane].push_back(cluster) ;
+	Bool_t extremum = kFALSE;
+
+	GEMCluster *new_cluster = new GEMCluster(fMinClusterSize, fMaxClusterSize, fIsClusterMaxOrTotalADCs);
+	new_cluster->SetNbAPVsFromPlane((*hit_it)->GetNbAPVsFromPlane());
+	new_cluster->SetAPVIndexOnPlane((*hit_it)->GetAPVIndexOnPlane());
+	new_cluster->SetPlaneSize((*hit_it)->GetPlaneSize());
+	new_cluster->SetPlane((*hit_it)->GetPlane());
+	new_cluster->AddHit( (*hit_it) );
+
+	// for single hit cluster
+	if( (*hit_it)->GetStripNo() - (*next)->GetStripNo() == -1 ){
+	    ++hit_it;
+	    ++next;
 	}
 
-	fListOfClustersCleanFromPlane[plane].sort(CompareClusterADCs) ;
-	hitsFromPlane.clear() ;
-	clustersMap.clear() ;
+	if( hit_it != hitsFromPlane.end())
+	{
+	    while( (*hit_it)->GetStripNo() - (*next)->GetStripNo() == -1)
+	    {
+		if(extremum){
+		    if( (*next)->GetHitADCs()  - (*hit_it)->GetHitADCs() > NOISE_SIGMA){
+			(*hit_it)->SetHitADCs( (*hit_it)->GetHitADCs()/2);
+			new_cluster->AddHit( (*hit_it) );
+			--hit_it;
+			--next;
+			break;
+		    }
+		}
+		else {
+		    if( (*hit_it)->GetHitADCs() - (*next)->GetHitADCs() > NOISE_SIGMA)
+			extremum = kTRUE;
+		}
+
+		new_cluster -> AddHit( (*hit_it) );
+		++hit_it;
+		++next;
+
+		if( hit_it == hitsFromPlane.end() )
+		    break;
+	    }
+
+	    if( (*hit_it)->GetStripNo() - (*next)->GetStripNo() != -1)
+		new_cluster -> AddHit(*hit_it);
+	}
+	if(new_cluster->IsGoodCluster()){
+	    new_cluster->ComputeClusterPosition();
+	    fListOfClustersCleanFromPlane[plane].push_back(new_cluster);
+	}
+	else
+	    delete new_cluster;
     }
 }
 

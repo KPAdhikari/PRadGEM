@@ -52,6 +52,9 @@ public:
     Float_t GetHitADCs() {
         return fHitADCs;
     }
+    void SetHitADCs(Float_t adc){
+        fHitADCs = adc;
+    }
 
     std::map <Int_t, Float_t> GetTimeBinADCs() { 
         return fTimeBinADCs ;

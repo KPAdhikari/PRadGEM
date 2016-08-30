@@ -43,6 +43,7 @@ public:
 
     // cluster
     void ComputeClusters();
+    void ComputePlaneCluster(TString &, std::list<GEMHit*> &);
     void DeleteClustersInPlaneMap() ;
     std::map < TString, std::list <GEMCluster * > > GetListOfClustersFromPlanes() { 
         return  fListOfClustersCleanFromPlane;  
