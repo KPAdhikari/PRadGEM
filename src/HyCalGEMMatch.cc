@@ -33,8 +33,8 @@ void HyCalGEMMatch::SetHyCalVector(vector<HyCalHit> *hycalhit)
 
 void HyCalGEMMatch::Clear()
 {
-    gem1.clear();
-    gem2.clear();
+    gem[0].clear();
+    gem[1].clear();
     res_gem.clear();
     res_gem1.clear();
     res_gem2.clear();
@@ -84,8 +84,8 @@ void HyCalGEMMatch::SetHyCalZ(double & z)
 int HyCalGEMMatch::Match()
 {
     Clear();
-    gem_coord -> GetPlaneClusterPlusMode(gem1, gem2);
-    if( (gem1.size() ==0) && (gem2.size() == 0) )
+    gem_coord -> GetPlaneClusterPlusMode(gem[0], gem[1]);
+    if( (gem[0].size() ==0) && (gem[1].size() == 0) )
         return 0;
     else if( hycal_hit -> size() == 0)
         return 0;
@@ -104,49 +104,46 @@ int HyCalGEMMatch::MetaMatch()
     bool match_gem2 = false;
 
     int n_hycal = hycal_hit->size();
-    int n_gem1 = gem1.size();
-    int n_gem2 = gem2.size();
-    for(int i=0;i<n_hycal;i++) {
+    for(int i=0;i<n_hycal;i++) 
+    {
 	double x = (hycal_hit->at(i).x);
 	double y = (hycal_hit->at(i).y);
 	ProjectHyCalToGEM(x, y);
-
 	match_gem1 = false;
 	match_gem2 = false;
 	res = delta;
-	for(int j=0;j<n_gem1;j++) {
-	    dr = r(x-gem1[j].x, y-gem1[j].y);
-	    if(dr < res) {
-		res = dr;
-		m_index = j;
-		m_e = hycal_hit->at(i).E;
-		match_gem1 = true;
-		match_gem2 = false;
-	    }
-	}
-	for(int k=0;k<n_gem2;k++) {
-	    dr = r(x-gem2[k].x, y-gem2[k].y);
-	    if(dr < res) {
-		res = dr;
-		m_index = k;
-		m_e = hycal_hit->at(i).E;
-		match_gem2 = true;
-		match_gem1 = false;
+
+	for(int ii=0;ii<2;ii++){
+	    for(int j=0;j<gem[ii].size();j++){
+		dr = r(x-gem[ii][j].x, y-gem[ii][j].y);
+		if(dr < res) {
+		    res = dr;
+		    m_index = j;
+		    m_e = hycal_hit->at(i).E;
+		    if(ii == 0){
+			match_gem1 = true;
+			match_gem2 = false;
+		    }
+		    else{
+			match_gem2 = true;
+			match_gem1 = false;
+		    }
+		}
 	    }
 	}
 	if(match_gem1 && match_gem2)
 	    cout<<" HyCal GEM Match error..."
 		<<endl;
 	else if( match_gem1 ) {
-	    gem1[m_index].energy = m_e;
-	    gem1[m_index].z = z_gem;
-	    res_gem.push_back(gem1[m_index]);
+	    gem[0][m_index].energy = m_e;
+	    gem[0][m_index].z = z_gem;
+	    res_gem.push_back(gem[0][m_index]);
 	    res_hycal.push_back(hycal_hit->at(i));
 	}
 	else if( match_gem2 ) {
-	    gem2[m_index].energy = m_e;
-	    gem2[m_index].z = z_gem;
-	    res_gem.push_back(gem2[m_index]);
+	    gem[1][m_index].energy = m_e;
+	    gem[1][m_index].z = z_gem;
+	    res_gem.push_back(gem[1][m_index]);
 	    res_hycal.push_back(hycal_hit->at(i));
 	}
     }
@@ -175,11 +172,11 @@ void HyCalGEMMatch::MatchByGEM()
     SetMatchCriteria(10.); 
     // Hard code a stricter match criteria
     // b/c overlapping area is 44mm
-    gem_coord -> GetPlaneClusterPlusMode(gem1, gem2);
-    if(gem1.size() != 0)
-        MetaMatchByGEM(gem1, res_gem1);
-    if(gem2.size() != 0)
-        MetaMatchByGEM(gem2, res_gem2);
+    gem_coord -> GetPlaneClusterPlusMode(gem[0], gem[1]);
+    if(gem[0].size() != 0)
+	MetaMatchByGEM(gem[0], res_gem1);
+    if(gem[1].size() != 0)
+	MetaMatchByGEM(gem[1], res_gem2);
 }
 
 void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMClusterStruct> & _res)

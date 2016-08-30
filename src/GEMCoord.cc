@@ -57,6 +57,7 @@ void GEMCoord::GetClusterGEM( int &nth, vector<GEMClusterStruct> &gem)
 	GEMClusterStruct cluster(x, y, c_x, c_y);
 	cluster.x_size = (*itx)->GetNbOfHits();
 	cluster.y_size = (*ity)->GetNbOfHits();
+	cluster.chamber_id = nth;
 	gem.push_back(cluster);
 	itx++;
 	ity++;
@@ -223,6 +224,7 @@ void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
 	    GEMClusterStruct cluster(x, y, c_x, c_y);
 	    cluster.x_size = (*itx)->GetNbOfHits();
 	    cluster.y_size = (*ity)->GetNbOfHits();
+	    cluster.chamber_id = 0;
 	    gem1.push_back(cluster);
 	    *itx++;
 	    *ity++;
@@ -243,6 +245,7 @@ void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
 	    GEMClusterStruct cluster(x, y, c_x, c_y);
 	    cluster.x_size = (*itx2)->GetNbOfHits();
 	    cluster.y_size = (*ity2)->GetNbOfHits();
+	    cluster.chamber_id = 1;
 	    gem2.push_back(cluster);
 	    itx2++;
 	    ity2++;
@@ -289,6 +292,7 @@ void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
 		GEMClusterStruct cluster(x, y, c_x, c_y);
 		cluster.x_size = (*itx)->GetNbOfHits();
 		cluster.y_size = (*ity)->GetNbOfHits();
+		cluster.chamber_id = 0;
 		gem1.push_back(cluster);
 		*itx++;
 		*ity++;
@@ -312,6 +316,7 @@ void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
 		GEMClusterStruct cluster(x, y, c_x, c_y);
 		cluster.x_size = (*itx2)->GetNbOfHits();
 		cluster.y_size = (*ity2)->GetNbOfHits();
+		cluster.chamber_id = 1;
 		gem2.push_back(cluster);
 		itx2++;
 		ity2++;
@@ -344,6 +349,7 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
 	    GEMClusterStruct cluster(x,y,c_x,c_y);
 	    cluster.x_size = i->GetNbOfHits();
 	    cluster.y_size = j->GetNbOfHits();
+	    cluster.chamber_id = 0;
 	    gem1.push_back(cluster);
 	}
     }
@@ -360,6 +366,7 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
 	    GEMClusterStruct cluster(x,y,c_x,c_y);
 	    cluster.x_size = i->GetNbOfHits();
 	    cluster.y_size = j->GetNbOfHits();
+	    cluster.chamber_id = 1;
 	    gem2.push_back(cluster);
 	}
     }

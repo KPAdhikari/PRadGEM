@@ -58,8 +58,7 @@ private:
     std::vector<GEMClusterStruct> res_gem1;
     std::vector<GEMClusterStruct> res_gem2;
     std::vector<HyCalHit> res_hycal;
-    std::vector<GEMClusterStruct> gem1;
-    std::vector<GEMClusterStruct> gem2;
+    std::vector<GEMClusterStruct> gem[2];
     std::vector<HyCalHit> *hycal_hit;
 
     double z_gem;
