@@ -36,6 +36,7 @@ GEMOnlineHitDecoder::GEMOnlineHitDecoder()
     NCH = 128;
     fZeroSupCut = 5;
     fIsHitMaxOrTotalADCs = "signalPeak"; 
+    //fIsHitMaxOrTotalADCs = "integratedADCs"; 
     fStartData = 0;
     nbTimeBin = 3;
     mapping = GEMMapping::GetInstance();
@@ -43,8 +44,8 @@ GEMOnlineHitDecoder::GEMOnlineHitDecoder()
     // cluster
     fMinClusterSize = 1;
     fMaxClusterSize = 20;
-    //fIsClusterMaxOrTotalADCs = "totalADCs";
     fIsClusterMaxOrTotalADCs = "maximumADCs";
+    //fIsClusterMaxOrTotalADCs = "totalADCs";
     fIsGoodClusterEvent = kFALSE;
 }
 
@@ -239,7 +240,7 @@ void GEMOnlineHitDecoder::APVZeroSuppression()
 	first[i] = last[i-1]+Time_Sample_SKIP;
 	last[i] = first[i] +NCH;
     }
-  
+
     for(int i=0;i<NCH;i++)
     {
 	float average = 0.;
@@ -266,7 +267,7 @@ void GEMOnlineHitDecoder::APVZeroSuppression()
 		}
 	    }
 	}
-        else
+	else
 	{
 	    Int_t hitID = (fAPVKey << 8) | i;
 	    if(!fListOfHits[hitID])
@@ -499,14 +500,13 @@ static Bool_t CompareClusterADCs( TObject *obj1, TObject *obj2) {
 }
 
 #define NOISE_SIGMA 14
-
 void GEMOnlineHitDecoder::ComputeClusters()
 {
     map< TString, list<GEMHit*> >::iterator plane_hits_it;
 
     for(plane_hits_it=fListOfHitsCleanFromPlane.begin(); plane_hits_it!=fListOfHitsCleanFromPlane.end(); ++plane_hits_it)
     {
-        TString plane = (*plane_hits_it).first;
+	TString plane = (*plane_hits_it).first;
 	list<GEMHit*> hitsFromPlane = (*plane_hits_it).second;
 	hitsFromPlane.sort(CompareStripNo);
 	Int_t listSize = hitsFromPlane.size();
@@ -516,7 +516,7 @@ void GEMOnlineHitDecoder::ComputeClusters()
 	    continue;
 	}
 
-        ComputePlaneCluster(plane, hitsFromPlane);
+	ComputePlaneCluster(plane, hitsFromPlane);
 
 	fListOfClustersCleanFromPlane[plane].sort(CompareClusterADCs);
 	hitsFromPlane.clear();
