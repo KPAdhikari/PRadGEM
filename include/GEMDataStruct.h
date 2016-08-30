@@ -19,7 +19,7 @@ struct GEMClusterStruct
     float z;
     int x_size;
     int y_size;
-    int chamber_index;
+    int chamber_id;
 
     GEMClusterStruct(){};
     ~GEMClusterStruct(){};
