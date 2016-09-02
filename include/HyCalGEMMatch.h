@@ -43,14 +43,17 @@ public:
     //void MatchAccordToGEM();
     //void MetaMatchAccordToGEM(std::vector<GEMClusterStruct> & _gem, 
 //	    std::vector<GEMClusterStruct> & _res);
+   
+    void ShowMatch(); // show match process
 
     void SetMatchCriteria(double & );
     void SetMatchCriteria(double &&);
-    void SetGEMZ(double &);
+    void SetGEM1Z(double &);
+    void SetGEM2Z(double &);
     void SetHyCalZ(double &);
     double r(double &, double &);
     double r(double &&, double &&);
-    void ProjectHyCalToGEM(double &, double &);
+    void ProjectHyCalToPlaneZ(double &, double &, double &);
 
 private:
     GEMCoord *gem_coord;
@@ -61,7 +64,8 @@ private:
     std::vector<GEMClusterStruct> gem[2];
     std::vector<HyCalHit> *hycal_hit;
 
-    double z_gem;
+    double z_gem1;
+    double z_gem2;
     double z_hycal;
     double delta;
 };

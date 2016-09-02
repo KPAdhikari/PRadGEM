@@ -33,6 +33,7 @@ GEMTree::GEMTree()
     this -> InitEpicsTree();
     this -> InitCaliOffsetTree();
     this -> InitProdOffsetTree();
+    this -> InitOverlapTree();
 }
 
 GEMTree::~GEMTree()
@@ -74,7 +75,8 @@ void GEMTree::InitPhysicsTree()
     ep_tree -> SetDirectory(file);
     ep_moller_tree = new TTree("ep_moller_tree", "ep moller tree");
     ep_moller_tree->SetDirectory(file);
-
+    
+    moller_tree->Branch("evt_id", &evt_id, "evt_id/I");
     moller_tree->Branch("nCluster", &nCluster, "nCluster/I");
     moller_tree->Branch("moller_scatt_angle1", &moller_scatt_angle1, "moller_scatt_angle1/F");
     moller_tree->Branch("moller_scatt_angle2", &moller_scatt_angle2, "moller_scatt_angle2/F");
@@ -92,14 +94,16 @@ void GEMTree::InitPhysicsTree()
     moller_tree->Branch("moller_pos_res_dx", &moller_pos_res_dx, "moller_pos_res_dx/F");
     moller_tree->Branch("moller_pos_res_dy", &moller_pos_res_dy, "moller_pos_res_dy/F");
 
-    ep_tree -> Branch("cCluster", &nCluster, "nCluster/I");
+    ep_tree -> Branch("evt_id", &evt_id, "evt_id/I");
+    ep_tree -> Branch("nCluster", &nCluster, "nCluster/I");
     ep_tree -> Branch("scatt_energy", scatt_energy, "scatt_energy[nCluster]/F");
     ep_tree -> Branch("scatt_angle", scatt_angle, "scatt_angle[nCluster]/F");
     ep_tree->Branch("scatt_x", scatt_x, "scatt_x[nCluster]/F");
     ep_tree->Branch("scatt_y", scatt_y, "scatt_y[nCluster]/F");
     ep_tree -> Branch("q_square", &q_square, "q_square/F");
 
-    ep_moller_tree -> Branch("cCluster", &nCluster, "nCluster/I");
+    ep_moller_tree -> Branch("evt_id", &evt_id, "evt_id/I");
+    ep_moller_tree -> Branch("nCluster", &nCluster, "nCluster/I");
     ep_moller_tree -> Branch("scatt_energy", scatt_energy, "scatt_energy[nCluster]/F");
     ep_moller_tree -> Branch("scatt_angle", scatt_angle, "scatt_angle[nCluster]/F");
 }
@@ -160,6 +164,8 @@ void GEMTree::PushMoller(PRadMoller * moller)
     else {
 	return;
     }
+
+    evt_id = moller->GetEvtID();
     vector<pair<int, pair<double, double> > > pos = moller->Positions();
     open_angle = moller->OpenAngle();
     coplanarity = moller->Coplanarity();
@@ -195,6 +201,8 @@ void GEMTree::PushEP(PRadEP * ep)
     else {
 	return;
     }
+
+    evt_id = ep->GetEvtID();
     vector<pair<double, double> > pos = ep->Positions();
     int ii = 0;
     for(auto &i: ea)
@@ -333,6 +341,7 @@ void GEMTree::FillCaliOffsetTree()
     cali_offset_tree->Fill();
 }
 
+// overlapping area method
 void GEMTree::InitProdOffsetTree()
 {
     prod_offset_tree1 = new TTree("prod_offset_tree1", "production offset tree 1");
@@ -345,6 +354,7 @@ void GEMTree::InitProdOffsetTree()
     empty_prod_gem1 = true;
     empty_prod_gem2 = true;
 
+    prod_offset_tree1 -> Branch("evt_id", &evt_id, "evt_id/I");
     prod_offset_tree1 -> Branch("prod_gem1_dx", &prod_gem1_dx, "prod_gem1_dx/D");
     prod_offset_tree1 -> Branch("prod_gem1_dy", &prod_gem1_dy, "prod_gem1_dy/D");
     prod_offset_tree1 -> Branch("prod_gem1_ncluster", &prod_gem1_ncluster, "prod_gem1_ncluster/I");
@@ -357,6 +367,7 @@ void GEMTree::InitProdOffsetTree()
     prod_offset_tree1 -> Branch("prod_gem1_angle1", &prod_gem1_angle1, "prod_gem1_angle1/D");
     prod_offset_tree1 -> Branch("prod_gem1_angle2", &prod_gem1_angle2, "prod_gem1_angle2/D");
 
+    prod_offset_tree2 -> Branch("evt_id", &evt_id, "evt_id/I");
     prod_offset_tree2 -> Branch("prod_gem2_dx", &prod_gem2_dx, "prod_gem2_dx/D");
     prod_offset_tree2 -> Branch("prod_gem2_dy", &prod_gem2_dy, "prod_gem2_dy/D");
     prod_offset_tree2 -> Branch("prod_gem2_ncluster", &prod_gem2_ncluster, "prod_gem2_ncluster/I");
@@ -369,6 +380,7 @@ void GEMTree::InitProdOffsetTree()
     prod_offset_tree2 -> Branch("prod_gem2_angle1", &prod_gem2_angle1, "prod_gem2_angle1/D");
     prod_offset_tree2 -> Branch("prod_gem2_angle2", &prod_gem2_angle2, "prod_gem2_angle2/D");
 
+    prod_offset_tree_res -> Branch("evt_id", &evt_id, "evt_id/I");
     prod_offset_tree_res -> Branch("prod_offset_x", &prod_offset_x, "prod_offset_x/D");
     prod_offset_tree_res -> Branch("prod_offset_y", &prod_offset_y, "prod_offset_y/D");
 }
@@ -377,6 +389,7 @@ void GEMTree::PushProdOffset(int i, PRadMoller * moller)
 {
     vector<pair<double, double> > ea = moller->EnergyAngle();
     if( ea.size() == 2 ){
+        evt_id = moller -> GetEvtID();
 	if( i==0){
 	    empty_prod_gem1 = false;
 	    prod_gem1_ncluster=2;
@@ -428,4 +441,140 @@ void GEMTree::FillProdOffsetTree()
 
     empty_prod_gem1 = true;
     empty_prod_gem2 = true;
+}
+
+void GEMTree::InitOverlapTree()
+{
+    olp_empty_moller_event = true;
+    olp_empty_ep_event = true;
+
+    overlap_moller_tree = new TTree("overlap_moller_tree", "overlap moller tree");
+    overlap_moller_tree -> SetDirectory(file);
+    overlap_ep_tree = new TTree("overlap_ep_tree", "overlap ep tree");
+    overlap_ep_tree -> SetDirectory(file);
+
+    //gem1
+    overlap_moller_tree -> Branch("gem1.event_id", &olp_moller_data1.event_id, "gem1.event_id/I");
+    overlap_moller_tree -> Branch("gem1.chamber_id1", &olp_moller_data1.chamber_id1, "gem1.chamber_id1/I");
+    overlap_moller_tree -> Branch("gem1.x1", &olp_moller_data1.x1, "gem1.x1/F");
+    overlap_moller_tree -> Branch("gem1.y1", &olp_moller_data1.y1, "gem1.y1/F");
+    overlap_moller_tree -> Branch("gem1.e1", &olp_moller_data1.e1, "gem1.e1/F");
+    overlap_moller_tree -> Branch("gem1.angle1", &olp_moller_data1.angle1, "gem1.angle1/F");
+    overlap_moller_tree -> Branch("gem1.chamber_id2", &olp_moller_data1.chamber_id2, "gem1.chamber_id2/I");
+    overlap_moller_tree -> Branch("gem1.x2", &olp_moller_data1.x2, "gem1.x2/F");
+    overlap_moller_tree -> Branch("gem1.y2", &olp_moller_data1.y2, "gem1.y2/F");
+    overlap_moller_tree -> Branch("gem1.e2", &olp_moller_data1.e2, "gem1.e2/F");
+    overlap_moller_tree -> Branch("gem1.angle2", &olp_moller_data1.angle2, "gem1.angle2/F");
+    overlap_moller_tree -> Branch("gem1.coplanarity", &olp_moller_data1.coplanarity, "gem1.coplanarity/F");
+    //gem2
+    overlap_moller_tree -> Branch("gem2.event_id", &olp_moller_data2.event_id, "gem2.event_id/I");
+    overlap_moller_tree -> Branch("gem2.chamber_id1", &olp_moller_data2.chamber_id1, "gem2.chamber_id1/I");
+    overlap_moller_tree -> Branch("gem2.x1", &olp_moller_data2.x1, "gem2.x1/F");
+    overlap_moller_tree -> Branch("gem2.y1", &olp_moller_data2.y1, "gem2.y1/F");
+    overlap_moller_tree -> Branch("gem2.e1", &olp_moller_data2.e1, "gem2.e1/F");
+    overlap_moller_tree -> Branch("gem2.angle1", &olp_moller_data2.angle1, "gem2.angle1/F");
+    overlap_moller_tree -> Branch("gem2.chamber_id2", &olp_moller_data2.chamber_id2, "gem2.chamber_id2/I");
+    overlap_moller_tree -> Branch("gem2.x2", &olp_moller_data2.x2, "gem2.x2/F");
+    overlap_moller_tree -> Branch("gem2.y2", &olp_moller_data2.y2, "gem2.y2/F");
+    overlap_moller_tree -> Branch("gem2.e2", &olp_moller_data2.e2, "gem2.e2/F");
+    overlap_moller_tree -> Branch("gem2.angle2", &olp_moller_data2.angle2, "gem2.angle2/F");
+    overlap_moller_tree -> Branch("gem2.coplanarity", &olp_moller_data2.coplanarity, "gem2.coplanarity/F");
+    //gem 1
+    overlap_ep_tree -> Branch("gem1.event_id", &olp_ep_data1.event_id, "gem1.event_id/I");
+    overlap_ep_tree -> Branch("gem1.chamber_id", &olp_ep_data1.chamber_id, "gem1.chamber_id/I");
+    overlap_ep_tree -> Branch("gem1.x", &olp_ep_data1.x, "gem1.x/F");
+    overlap_ep_tree -> Branch("gem1.y", &olp_ep_data1.y, "gem1.y/F");
+    overlap_ep_tree -> Branch("gem1.e", &olp_ep_data1.e, "gem1.e/F");
+    overlap_ep_tree -> Branch("gem1.angle", &olp_ep_data1.angle, "gem1.angle/F");
+    //gem2
+    overlap_ep_tree -> Branch("gem2.event_id", &olp_ep_data2.event_id, "gem2.event_id/I");
+    overlap_ep_tree -> Branch("gem2.chamber_id", &olp_ep_data2.chamber_id, "gem2.chamber_id/I");
+    overlap_ep_tree -> Branch("gem2.x", &olp_ep_data2.x, "gem2.x/F");
+    overlap_ep_tree -> Branch("gem2.y", &olp_ep_data2.y, "gem2.y/F");
+    overlap_ep_tree -> Branch("gem2.e", &olp_ep_data2.e, "gem2.e/F");
+    overlap_ep_tree -> Branch("gem2.angle", &olp_ep_data2.angle, "gem2.angle/F");
+}
+
+void GEMTree::PushOverlapMollerTree(PRadMoller *moller1, PRadMoller * moller2)
+{
+    vector<pair<double, double> > ea1 = moller1->EnergyAngle();
+    vector<pair<double, double> > ea2 = moller2->EnergyAngle();
+
+    if(ea1.size() == 2 && ea2.size()==2) {
+	olp_empty_moller_event = false;
+    }
+    else {
+	return;
+    }
+    // gem1
+    olp_moller_data1.event_id = moller1->GetEvtID();
+    olp_moller_data1.coplanarity = moller1->Coplanarity();
+
+    vector<pair<int, pair<double, double> > > pos1 = moller1->Positions();
+    olp_moller_data1.chamber_id1 = pos1[0].first;
+    olp_moller_data1.x1 = pos1[0].second.first;
+    olp_moller_data1.y1 = pos1[0].second.second;
+    olp_moller_data1.e1 = ea1[0].first;
+    olp_moller_data1.angle1 = ea1[0].second;
+
+    olp_moller_data1.chamber_id2 = pos1[1].first;
+    olp_moller_data1.x2 = pos1[1].second.first;
+    olp_moller_data1.y2 = pos1[1].second.second;
+    olp_moller_data1.e2 = ea1[1].first;
+    olp_moller_data1.angle2 = ea1[1].second;
+    // gem2
+    olp_moller_data2.event_id = moller2->GetEvtID();
+    olp_moller_data2.coplanarity = moller2->Coplanarity();
+
+    vector<pair<int, pair<double, double> > > pos2 = moller2->Positions();
+    olp_moller_data2.chamber_id1 = pos2[0].first;
+    olp_moller_data2.x1 = pos2[0].second.first;
+    olp_moller_data2.y1 = pos2[0].second.second;
+    olp_moller_data2.e1 = ea2[0].first;
+    olp_moller_data2.angle1 = ea2[0].second;
+
+    olp_moller_data2.chamber_id2 = pos2[1].first;
+    olp_moller_data2.x2 = pos2[1].second.first;
+    olp_moller_data2.y2 = pos2[1].second.second;
+    olp_moller_data2.e2 = ea2[1].first;
+    olp_moller_data2.angle2 = ea2[1].second;
+}
+
+void GEMTree::PushOverlapEpTree(PRadEP *ep1, PRadEP *ep2)
+{
+    vector<pair<double, double> > ea1 = ep1->EnergyAngle();
+    vector<pair<double, double> > ea2 = ep2->EnergyAngle();
+ 
+    if(ea1.size() == 1  && ea2.size() ==1) {
+	olp_empty_ep_event = false;
+    }
+    else {
+	return;
+    }
+    //gem1
+    olp_ep_data1.event_id = ep1->GetEvtID();
+    olp_ep_data1.chamber_id = ep1->GetChamberID();
+    vector<pair<double, double> > pos1 = ep1->Positions();
+    olp_ep_data1.x = pos1[0].first;
+    olp_ep_data1.y = pos1[0].second;
+    olp_ep_data1.e = ea1[0].first;
+    olp_ep_data1.angle = ea1[0].second;
+    //gem2
+    olp_ep_data2.event_id = ep2->GetEvtID();
+    olp_ep_data2.chamber_id = ep2->GetChamberID();
+    vector<pair<double, double> > pos2 = ep2->Positions();
+    olp_ep_data2.x = pos2[0].first;
+    olp_ep_data2.y = pos2[0].second;
+    olp_ep_data2.e = ea2[0].first;
+    olp_ep_data2.angle = ea2[0].second;
+}
+
+void GEMTree::FillOverlapTree()
+{
+    if( !olp_empty_moller_event)
+        overlap_moller_tree->Fill();
+    if( !olp_empty_ep_event)
+        overlap_ep_tree->Fill();
+    olp_empty_moller_event = true;
+    olp_empty_ep_event = true;
 }

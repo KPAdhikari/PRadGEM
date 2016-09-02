@@ -118,6 +118,7 @@ void PRadMoller::Process()
     positions.emplace_back(gem->at(0).chamber_id, make_pair<double, double>(gem->at(0).x, gem->at(0).y));
     positions.emplace_back(gem->at(1).chamber_id, make_pair<double, double>(gem->at(1).x, gem->at(1).y));
 
+    // gem resolution
     GetMollerCenter();
     //-----------------------------------------------------------
     // computed moller center history:
@@ -291,6 +292,7 @@ pair<double, double> & PRadMoller::MollerCenter()
 
 void PRadMoller::GetMollerCenter()
 {
+    // no need to project gem1 to gem2
     assert(previous_positions.size() == 2);
     if(positions.size() != 2)
 	return;
@@ -334,4 +336,14 @@ void PRadMoller::GetIntersection()
     //cout<<"("<<_x1<<","<<_y1<<") ("<<_x2<<", "<<_y2<<")"<<endl;
     //cout<<"("<<x1<<","<<y1<<") ("<<x2<<", "<<y2<<")"<<endl;
     //cout<<"("<<moller_center.first<<", "<<moller_center.second<<")"<<endl;
+}
+
+void PRadMoller::SetEvtID(unsigned int id)
+{
+    evt_id = id;
+}
+
+unsigned int PRadMoller::GetEvtID()
+{
+    return evt_id;
 }

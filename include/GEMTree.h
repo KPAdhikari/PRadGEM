@@ -15,6 +15,44 @@ class PRadEP;
 class GEMTree
 {
 public:
+    struct moller_data_t
+    {
+        unsigned int event_id;
+	int chamber_id1;
+        float x1;
+	float y1;
+	float e1;
+	float angle1;
+	int chamber_id2;
+	float x2;
+	float y2;
+	float e2;
+	float angle2;
+
+	float coplanarity;
+
+	moller_data_t()
+        : event_id(0), chamber_id1(0),  x1(0),y1(0), 
+	e1(0), angle1(0), chamber_id2(0), x2(0), y2(0), 
+	e2(0), angle2(0), coplanarity(0)
+	{}
+    };
+
+    struct ep_data_t
+    {
+        unsigned int event_id;
+	int chamber_id;
+	float x;
+	float y;
+	float e;
+	float angle;
+
+	ep_data_t()
+	: event_id(0), chamber_id(0), x(0),
+	y(0), e(0), angle(0)
+	{}
+    };
+
     GEMTree();
     ~GEMTree();
     // GEM TREE
@@ -52,10 +90,20 @@ public:
     void InitCaliOffsetTree();
     void PushCaliOffset(double, double);
     void FillCaliOffsetTree();
+
     // production offset tree
     void InitProdOffsetTree();
     void PushProdOffset(int , PRadMoller *);
     void FillProdOffsetTree();
+
+    // overlap area tree
+    // ep tree
+    void InitOverlapTree();
+    void PushOverlapMollerTree(PRadMoller*, PRadMoller*);
+    void PushOverlapEpTree(PRadEP*, PRadEP*);
+    void FillOverlapTree();
+
+    // moller tree
 
     // can also save histograms
     // make histos public for easy access
@@ -63,6 +111,9 @@ public:
 
 private:
     TFile *file;
+
+    // for all trees
+    unsigned int evt_id;
 
     // GEM TREE
     TTree *gem_tree;
@@ -116,7 +167,8 @@ private:
     TTree *cali_offset_tree;
     double cali_x_offset;
     double cali_y_offset;
-    // offset from production runs
+
+    // offset from production runs, overlapping area method
     // gem1
     TTree *prod_offset_tree1;
     double prod_gem1_dx;
@@ -149,6 +201,17 @@ private:
     TTree *prod_offset_tree_res;
     double prod_offset_x;
     double prod_offset_y;
+
+    // overlap area tree
+    bool olp_empty_moller_event;
+    TTree *overlap_moller_tree;
+    bool olp_empty_ep_event;
+    TTree *overlap_ep_tree;
+
+    moller_data_t olp_moller_data1;
+    moller_data_t olp_moller_data2;
+    ep_data_t olp_ep_data1;
+    ep_data_t olp_ep_data2;
 };
 
 #endif

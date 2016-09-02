@@ -26,7 +26,13 @@ public:
     std::vector<std::pair<double, double> > & EnergyAngle();
     std::vector<std::pair<double, double> > & Positions();
 
+    void SetEvtID( unsigned int );
+    unsigned int GetEvtID();
+    int & GetChamberID();
+    void SetChamberID(int );
+
 private:
+    unsigned int evt_id;
     std::vector<GEMClusterStruct> *gem;
     double beam_energy;
 
@@ -34,6 +40,7 @@ private:
     double q_square;
     std::vector< std::pair<double, double > > energy_angle;
     std::vector< std::pair<double, double > > positions;
+    int chamber_id;
 };
 
 #endif

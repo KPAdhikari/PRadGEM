@@ -116,3 +116,23 @@ vector<pair<double, double> > & PRadEP::Positions()
 {
     return positions;
 }
+
+void PRadEP::SetEvtID(unsigned int id)
+{
+    evt_id = id;
+}
+
+unsigned int PRadEP::GetEvtID()
+{
+    return evt_id;
+}
+
+int & PRadEP::GetChamberID()
+{
+    return chamber_id;
+}
+
+void PRadEP::SetChamberID(int id)
+{
+    chamber_id = id;
+}

@@ -14,6 +14,8 @@ public:
     PRadMoller();
     ~PRadMoller();
     void SetData(std::vector<GEMClusterStruct> * fgem);
+    void SetEvtID(unsigned int id);
+    unsigned int GetEvtID();
     void SetBeamEnergy(double & );
     void SetBeamEnergy(double &&);
     bool PassCut();
@@ -46,6 +48,7 @@ private:
     MollerGEMSpatialRes * gem_pos_res;
     std::vector<GEMClusterStruct> *gem;
     double beam_energy;
+    unsigned int evt_id;
 
     double scatt_angle1;
     double scatt_angle2;

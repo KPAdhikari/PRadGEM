@@ -10,9 +10,8 @@ HyCalGEMMatch::HyCalGEMMatch()
     delta = 30.;
 
     // mm +[ chamber + screw cap thickness]
-    // in gem_coord, coords already projected 
-    // to gem2
-    z_gem = 5260. + 20.;
+    z_gem1 = 5300. + 20.;
+    z_gem2 = 5260. + 20.;
     z_hycal = 5600.;
 }
 
@@ -71,9 +70,14 @@ void HyCalGEMMatch::SetMatchCriteria(double && c)
     delta = c;
 }
 
-void HyCalGEMMatch::SetGEMZ(double &z)
+void HyCalGEMMatch::SetGEM1Z(double &z)
 {
-    z_gem = z;
+    z_gem1 = z;
+}
+
+void HyCalGEMMatch::SetGEM2Z(double &z)
+{
+    z_gem2 = z;
 }
 
 void HyCalGEMMatch::SetHyCalZ(double & z)
@@ -86,11 +90,13 @@ int HyCalGEMMatch::Match()
     Clear();
     gem_coord -> GetPlaneClusterPlusMode(gem[0], gem[1]);
     if( (gem[0].size() ==0) && (gem[1].size() == 0) )
-        return 0;
+	return 0;
     else if( hycal_hit -> size() == 0)
-        return 0;
-    else 
-        return MetaMatch();
+	return 0;
+    else {
+	//ShowMatch();
+	return MetaMatch();
+    }
 }
 
 int HyCalGEMMatch::MetaMatch()
@@ -108,12 +114,20 @@ int HyCalGEMMatch::MetaMatch()
     {
 	double x = (hycal_hit->at(i).x);
 	double y = (hycal_hit->at(i).y);
-	ProjectHyCalToGEM(x, y);
 	match_gem1 = false;
 	match_gem2 = false;
 	res = delta;
 
-	for(int ii=0;ii<2;ii++){
+	for(int ii=0;ii<2;ii++)
+	{
+	    double z =0.;
+	    if( ii==0)
+		z = z_gem1;
+	    else
+		z = z_gem2;
+
+	    ProjectHyCalToPlaneZ(x, y, z);
+
 	    for(int j=0;j<gem[ii].size();j++){
 		dr = r(x-gem[ii][j].x, y-gem[ii][j].y);
 		if(dr < res) {
@@ -136,13 +150,11 @@ int HyCalGEMMatch::MetaMatch()
 		<<endl;
 	else if( match_gem1 ) {
 	    gem[0][m_index].energy = m_e;
-	    gem[0][m_index].z = z_gem;
 	    res_gem.push_back(gem[0][m_index]);
 	    res_hycal.push_back(hycal_hit->at(i));
 	}
 	else if( match_gem2 ) {
 	    gem[1][m_index].energy = m_e;
-	    gem[1][m_index].z = z_gem;
 	    res_gem.push_back(gem[1][m_index]);
 	    res_hycal.push_back(hycal_hit->at(i));
 	}
@@ -150,10 +162,10 @@ int HyCalGEMMatch::MetaMatch()
     return res_gem.size();
 }
 
-void HyCalGEMMatch::ProjectHyCalToGEM(double &x, double &y)
+void HyCalGEMMatch::ProjectHyCalToPlaneZ(double &x, double &y, double &z)
 {
-    x = x*z_gem/z_hycal;
-    y = y*z_gem/z_hycal;
+    x = x*z/z_hycal;
+    y = y*z/z_hycal;
 }
 
 double HyCalGEMMatch::r(double & x, double & y)
@@ -189,10 +201,14 @@ void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMCl
 
     int n_hycal = hycal_hit->size();
     int n_gem = _gem.size();
+    double z = _gem[0].z;
+    if( z<5200. || z > 5400)
+	cout<<" HyCal GEM Match: Z ERROR."<<endl;
+
     for(int i=0;i<n_hycal;i++) {
 	double x = (hycal_hit->at(i).x);
 	double y = (hycal_hit->at(i).y);
-	ProjectHyCalToGEM(x, y);
+	ProjectHyCalToPlaneZ(x, y, z);
 
 	match_gem = false;
 	res = delta;
@@ -207,8 +223,87 @@ void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMCl
 	}
 	if( match_gem ) {
 	    _gem[m_index].energy = m_e;
-	    _gem[m_index].z = z_gem;
 	    _res.push_back(_gem[m_index]);
 	}
     }
+}
+
+#include <TGraph.h>
+#include <TCanvas.h>
+#include <TH1F.h>
+#include <TFile.h>
+#include <TEllipse.h>
+
+void HyCalGEMMatch::ShowMatch()
+{
+    if(gem[0].size() == 0 || gem[1].size() == 0)
+	return;
+    if(hycal_hit->size() == 0)
+	return;
+
+    int ng1 = gem[0].size();
+    int ng2 = gem[1].size();
+    int nh = hycal_hit->size();
+
+    Float_t xg1[ng1], yg1[ng1];
+    Float_t xg2[ng2], yg2[ng2];
+    Float_t xh[nh], yh[nh];
+
+    int index = 0;
+    for(auto &i: gem[0]){
+	xg1[index] = i.x;
+	yg1[index++] = i.y;
+    }
+    index = 0;
+    for(auto &i: gem[1]){
+	xg2[index] = i.x;
+	yg2[index++] = i.y;
+    }
+    index = 0;
+    for(auto &i: *hycal_hit){
+	xh[index] = i.x;
+	xh[index++] = i.y;
+    }
+
+    TFile *f = new TFile("temp.root", "recreate");
+    TCanvas *c = new TCanvas("c", "c", 800,800);
+    TGraph *g1 = new TGraph(ng1, xg1, yg1);
+    TGraph *g2 = new TGraph(ng2, xg2, yg2);
+    TGraph *gh = new TGraph(nh, xh, yh);
+
+    TEllipse *el[nh];
+    for(int i=0;i<nh;i++){
+	el[i] = new TEllipse(xh[i], yh[i], 60);
+    }
+
+    g1->SetName("g1");
+    g2->SetName("g2");
+    gh->SetName("gh");
+
+    g1->SetMarkerStyle(22);
+    g2->SetMarkerStyle(23);
+    gh->SetMarkerStyle(8);
+
+    g1->SetMarkerColor(2);
+    g2->SetMarkerColor(4);
+    gh->SetMarkerColor(6);
+
+    g1->SetMarkerSize(1);
+    g2->SetMarkerSize(1);
+    gh->SetMarkerSize(1);
+    c->DrawFrame(-600,-600,600,600);
+    cout<<ng1<<", "<<ng2<<", "<<nh<<endl;
+    for(int i=0;i<nh;i++){
+	el[i]->SetLineColor(4);
+	el[i]->Draw("P");
+    }
+    g1->Draw("P");
+    g2->Draw("P");
+    gh->Draw("P");
+    c->Update();
+    cout<<"press enter to continue..."<<endl;
+    c->Write();
+    f->Write();
+    f->Close();
+    getchar();
 }

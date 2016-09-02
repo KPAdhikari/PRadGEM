@@ -1,6 +1,12 @@
 //==============================================================================//
 // A nasty class, dealing with Coordinate Transformation                        //
-// All gem clusters will be projected to z=z_gem2 plane.                        //
+// Version 1:                                                                   //
+//     All gem clusters will be projected to z=z_gem2 plane.                    //
+// Version 2:                                                                   //
+//     No project, All gem clusters in their own plane.                         //
+//     Version 1 is causing confusion.  In fact "z_gem1" and "z_gem2" are unknown.
+//     Offsets also must be in their own Frame.                                 //
+//     If need to convert them into one plane, make sure you have right offsts  //
 //                                                                              //
 // Xinzhan Bai                                                                  //
 // 08/09/2016                                                                   //
@@ -10,6 +16,8 @@
 #include "GEMCluster.h"
 #include "GEMMapping.h"
 #include <TH1F.h>
+
+//#define PROJECT_TO_ONE_PLANE
 
 using namespace std;
 
@@ -76,6 +84,9 @@ void GEMCoord::InitPRadGeometry()
     //    gem1: x = x-253.2; y = y
     //    gem2: x = -x+253.2; y=-y
     //    
+    //    gem1 is the one away from target, 
+    //    left one, if looking downstream
+    //    
     //    right-hand coordinate, HyCal Y axis
     //    must be pointing downward
     //
@@ -99,7 +110,7 @@ void GEMCoord::InitPRadGeometry()
 void GEMCoord::SetGEMOffsetX(double v)
 {
     // gem_offset_x will be used in 
-    // gem1 local frame
+    // gem local frame
     
     // make sure the offset provided
     // is in gem1 local frame.
@@ -110,7 +121,7 @@ void GEMCoord::SetGEMOffsetX(double v)
 void GEMCoord::SetGEMOffsetY(double v)
 {
     // gem_offset_y will be used in 
-    // gem1 local frame
+    // gem local frame
     
     // make sure the offset provided
     // is in gem1 local frame.
@@ -216,7 +227,9 @@ void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
 	{
 	    pair<double, double> res;
 	    res = TransformGEMCoord(0, make_pair((*itx)->GetClusterPosition(),(*ity)->GetClusterPosition()));
+#ifdef PROJECT_TO_ONE_PLANE
 	    ProjectToGEM2(res); // project to gem2
+#endif
 	    float c_x = (*itx)->GetClusterADCs();
 	    float c_y = (*ity)->GetClusterADCs();
 	    float x = res.first;
@@ -225,6 +238,7 @@ void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
 	    cluster.x_size = (*itx)->GetNbOfHits();
 	    cluster.y_size = (*ity)->GetNbOfHits();
 	    cluster.chamber_id = 0;
+	    cluster.z = z_gem1;
 	    gem1.push_back(cluster);
 	    *itx++;
 	    *ity++;
@@ -246,6 +260,7 @@ void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
 	    cluster.x_size = (*itx2)->GetNbOfHits();
 	    cluster.y_size = (*ity2)->GetNbOfHits();
 	    cluster.chamber_id = 1;
+	    cluster.z = z_gem2;
 	    gem2.push_back(cluster);
 	    itx2++;
 	    ity2++;
@@ -282,7 +297,9 @@ void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
 	{
 	    pair<double, double> res;
 	    res = TransformGEMCoord(0, make_pair( (*itx)->GetClusterPosition(),(*ity)->GetClusterPosition()));
+#ifdef PROJECT_TO_ONE_PLANE
 	    ProjectToGEM2(res); // project to gem2
+#endif
 	    if(res.first <= edge1) 
 	    {
 		float c_x = (*itx)->GetClusterADCs();
@@ -293,6 +310,7 @@ void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
 		cluster.x_size = (*itx)->GetNbOfHits();
 		cluster.y_size = (*ity)->GetNbOfHits();
 		cluster.chamber_id = 0;
+		cluster.z = z_gem1;
 		gem1.push_back(cluster);
 		*itx++;
 		*ity++;
@@ -317,6 +335,7 @@ void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
 		cluster.x_size = (*itx2)->GetNbOfHits();
 		cluster.y_size = (*ity2)->GetNbOfHits();
 		cluster.chamber_id = 1;
+		cluster.z = z_gem2;
 		gem2.push_back(cluster);
 		itx2++;
 		ity2++;
@@ -341,7 +360,9 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
 	{
 	    pair<double, double> res;
 	    res = TransformGEMCoord(0, make_pair(i->GetClusterPosition(), j->GetClusterPosition()));
+#ifdef PROJECT_TO_ONE_PLANE
 	    ProjectToGEM2(res); // project to gem2
+#endif
 	    float c_x = i->GetClusterADCs();
 	    float c_y = j->GetClusterADCs();
 	    float x = res.first;
@@ -350,6 +371,7 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
 	    cluster.x_size = i->GetNbOfHits();
 	    cluster.y_size = j->GetNbOfHits();
 	    cluster.chamber_id = 0;
+	    cluster.z = z_gem1;
 	    gem1.push_back(cluster);
 	}
     }
@@ -367,6 +389,7 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
 	    cluster.x_size = i->GetNbOfHits();
 	    cluster.y_size = j->GetNbOfHits();
 	    cluster.chamber_id = 1;
+	    cluster.z = z_gem2;
 	    gem2.push_back(cluster);
 	}
     }
