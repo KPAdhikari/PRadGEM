@@ -3,7 +3,7 @@
 // Version 1:                                                                   //
 //     All gem clusters will be projected to z=z_gem2 plane.                    //
 // Version 2:                                                                   //
-//     No project, All gem clusters in their own plane.                         //
+//     No project any more, All gem clusters in their own plane.                //
 //     Version 1 is causing confusion.  In fact "z_gem1" and "z_gem2" are unknown.
 //     Offsets also must be in their own Frame.                                 //
 //     If need to convert them into one plane, make sure you have right offsts  //
@@ -91,13 +91,14 @@ void GEMCoord::InitPRadGeometry()
     //    must be pointing downward
     //
     //    beam downstream is z axis direction
-    //    chamber thickness + screw thickness: 20mm
+    //    chamber thickness + screw thickness = 20mm
+    //    5300 and 5260 do not include this 20mm
     //---------------------------------------------
     
     origin_transfer = 253.2;
     overlap_length = 44.;
-    z_gem1 = 5300. + 20.;
-    z_gem2 = 5260. + 20.;
+    z_gem[0] = 5300.;
+    z_gem[1] = 5260.;
 
     gem_offset_x = 0.;
     gem_offset_y = 0.;
@@ -198,8 +199,8 @@ pair<double, double> GEMCoord::TransformGEMCoord(int n, pair<double, double> && 
 
 void GEMCoord::ProjectToGEM2(pair<double, double> & res)
 {
-    res.first = res.first * z_gem2/z_gem1;
-    res.second = res.second * z_gem2/z_gem1;
+    res.first = res.first * z_gem[1]/z_gem[0];
+    res.second = res.second * z_gem[1]/z_gem[0];
 }
 
 void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
@@ -212,60 +213,8 @@ void GEMCoord::GetPlaneClusterTransferred(vector<GEMClusterStruct> &gem1,
     list<GEMCluster*> cluster_x2 = (*fListOfClustersCleanFromPlane)["pRadGEM2X"];
     list<GEMCluster*> cluster_y2 = (*fListOfClustersCleanFromPlane)["pRadGEM2Y"];
 
-    int s1 = cluster_x1.size();
-    int s2 = cluster_y1.size();  
-    int nbCluster1 = (s1<s2)?s1:s2;
-    s1 = cluster_x2.size();
-    s2 = cluster_y2.size();
-    int nbCluster2 = (s1<s2)?s1:s2;
-
-    if(nbCluster1>0)
-    {
-	list<GEMCluster*>::iterator itx = cluster_x1.begin();
-	list<GEMCluster*>::iterator ity = cluster_y1.begin();
-	for(int i = 0;i<nbCluster1;i++)
-	{
-	    pair<double, double> res;
-	    res = TransformGEMCoord(0, make_pair((*itx)->GetClusterPosition(),(*ity)->GetClusterPosition()));
-#ifdef PROJECT_TO_ONE_PLANE
-	    ProjectToGEM2(res); // project to gem2
-#endif
-	    float c_x = (*itx)->GetClusterADCs();
-	    float c_y = (*ity)->GetClusterADCs();
-	    float x = res.first;
-	    float y = res.second;
-	    GEMClusterStruct cluster(x, y, c_x, c_y);
-	    cluster.x_size = (*itx)->GetNbOfHits();
-	    cluster.y_size = (*ity)->GetNbOfHits();
-	    cluster.chamber_id = 0;
-	    cluster.z = z_gem1;
-	    gem1.push_back(cluster);
-	    *itx++;
-	    *ity++;
-	}
-    }
-    if(nbCluster2>0)
-    {
-	list<GEMCluster*>::iterator itx2 = cluster_x2.begin();
-	list<GEMCluster*>::iterator ity2 = cluster_y2.begin();
-	for(int i = 0;i<nbCluster2;i++)
-	{
-	    pair<double, double> res;
-	    res = TransformGEMCoord(1, make_pair((*itx2)->GetClusterPosition(),(*ity2)->GetClusterPosition()));
-	    float c_x = (*itx2)->GetClusterADCs();
-	    float c_y = (*ity2)->GetClusterADCs();
-	    float x = res.first;
-	    float y = res.second;
-	    GEMClusterStruct cluster(x, y, c_x, c_y);
-	    cluster.x_size = (*itx2)->GetNbOfHits();
-	    cluster.y_size = (*ity2)->GetNbOfHits();
-	    cluster.chamber_id = 1;
-	    cluster.z = z_gem2;
-	    gem2.push_back(cluster);
-	    itx2++;
-	    ity2++;
-	}
-    }
+    XYClusterMatchNormalMode(0, gem1, cluster_x1, cluster_y1);
+    XYClusterMatchNormalMode(1, gem2, cluster_x2, cluster_y2);
 }
 
 void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
@@ -278,70 +227,8 @@ void GEMCoord::GetPlaneClusterCutMode(vector<GEMClusterStruct> &gem1,
     list<GEMCluster*> cluster_x2 = (*fListOfClustersCleanFromPlane)["pRadGEM2X"];
     list<GEMCluster*> cluster_y2 = (*fListOfClustersCleanFromPlane)["pRadGEM2Y"];
 
-    int s1 = cluster_x1.size();
-    int s2 = cluster_y1.size();  
-    int nbCluster1 = (s1<s2)?s1:s2;
-    s1 = cluster_x2.size();
-    s2 = cluster_y2.size();
-    int nbCluster2 = (s1<s2)?s1:s2;
-
-    // cutting edge
-    float edge1 = 0;
-    float edge2 = 0;
-
-    if(nbCluster1>0)
-    {
-	list<GEMCluster*>::iterator itx = cluster_x1.begin();
-	list<GEMCluster*>::iterator ity = cluster_y1.begin();
-	for(int i = 0;i<nbCluster1;i++)
-	{
-	    pair<double, double> res;
-	    res = TransformGEMCoord(0, make_pair( (*itx)->GetClusterPosition(),(*ity)->GetClusterPosition()));
-#ifdef PROJECT_TO_ONE_PLANE
-	    ProjectToGEM2(res); // project to gem2
-#endif
-	    if(res.first <= edge1) 
-	    {
-		float c_x = (*itx)->GetClusterADCs();
-		float c_y = (*ity)->GetClusterADCs();
-		float x = res.first;
-		float y = res.second;
-		GEMClusterStruct cluster(x, y, c_x, c_y);
-		cluster.x_size = (*itx)->GetNbOfHits();
-		cluster.y_size = (*ity)->GetNbOfHits();
-		cluster.chamber_id = 0;
-		cluster.z = z_gem1;
-		gem1.push_back(cluster);
-		*itx++;
-		*ity++;
-	    }
-	}
-    }
-    if(nbCluster2>0)
-    {
-	list<GEMCluster*>::iterator itx2 = cluster_x2.begin();
-	list<GEMCluster*>::iterator ity2 = cluster_y2.begin();
-	for(int i = 0;i<nbCluster2;i++)
-	{
-	    pair<double, double> res;
-	    res = TransformGEMCoord(1, make_pair( (*itx2)->GetClusterPosition(),(*ity2)->GetClusterPosition() ));
-	    if( res.first > edge2)
-	    {
-		float c_x = (*itx2)->GetClusterADCs();
-		float c_y = (*ity2)->GetClusterADCs();
-		float x = res.first;
-		float y = res.second;
-		GEMClusterStruct cluster(x, y, c_x, c_y);
-		cluster.x_size = (*itx2)->GetNbOfHits();
-		cluster.y_size = (*ity2)->GetNbOfHits();
-		cluster.chamber_id = 1;
-		cluster.z = z_gem2;
-		gem2.push_back(cluster);
-		itx2++;
-		ity2++;
-	    }
-	}
-    }
+    XYClusterMatchCutMode(0, gem1, cluster_x1, cluster_y1);
+    XYClusterMatchCutMode(1, gem2, cluster_x2, cluster_y2);
 }
 
 void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
@@ -353,15 +240,23 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
     list<GEMCluster*> cluster_y1 = (*fListOfClustersCleanFromPlane)["pRadGEM1Y"];
     list<GEMCluster*> cluster_x2 = (*fListOfClustersCleanFromPlane)["pRadGEM2X"];
     list<GEMCluster*> cluster_y2 = (*fListOfClustersCleanFromPlane)["pRadGEM2Y"];
+    
+    XYClusterMatchPlusMode(0, gem1, cluster_x1, cluster_y1);
+    XYClusterMatchPlusMode(1, gem2, cluster_x2, cluster_y2);
+}
 
-    for( auto &i : cluster_x1)
+void GEMCoord::XYClusterMatchPlusMode(int detID, vector<GEMClusterStruct> &gem, 
+	list<GEMCluster*> &xlist, list<GEMCluster*> &ylist)
+{
+    for( auto &i : xlist)
     {
-	for(auto &j : cluster_y1)
+	for(auto &j : ylist)
 	{
 	    pair<double, double> res;
-	    res = TransformGEMCoord(0, make_pair(i->GetClusterPosition(), j->GetClusterPosition()));
+	    res = TransformGEMCoord(detID, make_pair(i->GetClusterPosition(), j->GetClusterPosition()));
 #ifdef PROJECT_TO_ONE_PLANE
-	    ProjectToGEM2(res); // project to gem2
+	    if(detID == 0)
+		ProjectToGEM2(res); // project to gem2
 #endif
 	    float c_x = i->GetClusterADCs();
 	    float c_y = j->GetClusterADCs();
@@ -370,30 +265,89 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
 	    GEMClusterStruct cluster(x,y,c_x,c_y);
 	    cluster.x_size = i->GetNbOfHits();
 	    cluster.y_size = j->GetNbOfHits();
-	    cluster.chamber_id = 0;
-	    cluster.z = z_gem1;
-	    gem1.push_back(cluster);
-	}
-    }
-    for( auto &i : cluster_x2)
-    {
-	for(auto &j : cluster_y2)
-	{
-	    pair<double, double> res;
-	    res = TransformGEMCoord(1, make_pair(i->GetClusterPosition(), j->GetClusterPosition()));
-	    float c_x = i->GetClusterADCs();
-	    float c_y = j->GetClusterADCs();
-	    float x = res.first;
-	    float y = res.second;
-	    GEMClusterStruct cluster(x,y,c_x,c_y);
-	    cluster.x_size = i->GetNbOfHits();
-	    cluster.y_size = j->GetNbOfHits();
-	    cluster.chamber_id = 1;
-	    cluster.z = z_gem2;
-	    gem2.push_back(cluster);
+	    cluster.chamber_id = detID;
+	    cluster.z = z_gem[detID];
+	    gem.push_back(cluster);
 	}
     }
 }
+
+void GEMCoord::XYClusterMatchCutMode(int detID, vector<GEMClusterStruct> &gem, 
+	list<GEMCluster*> &xlist, list<GEMCluster*> &ylist)
+{
+    int s1 = xlist.size();
+    int s2 = ylist.size();  
+    int nbCluster = (s1<s2)?s1:s2;
+
+    // cutting edge
+    float edge = 0;
+
+    if(nbCluster != 0)
+    {
+	list<GEMCluster*>::iterator itx = xlist.begin();
+	list<GEMCluster*>::iterator ity = ylist.begin();
+	for(int i = 0;i<nbCluster;i++)
+	{
+	    pair<double, double> res;
+	    res = TransformGEMCoord(detID, make_pair( (*itx)->GetClusterPosition(),(*ity)->GetClusterPosition()));
+#ifdef PROJECT_TO_ONE_PLANE
+	    if( detID == 0)
+		ProjectToGEM2(res); // project to gem2
+#endif
+	    if( (detID == 0 && res.first <= edge) || (detID == 1 && res.first >= edge)) 
+	    {
+		float c_x = (*itx)->GetClusterADCs();
+		float c_y = (*ity)->GetClusterADCs();
+		float x = res.first;
+		float y = res.second;
+		GEMClusterStruct cluster(x, y, c_x, c_y);
+		cluster.x_size = (*itx)->GetNbOfHits();
+		cluster.y_size = (*ity)->GetNbOfHits();
+		cluster.chamber_id = detID;
+		cluster.z = z_gem[detID];
+		gem.push_back(cluster);
+		*itx++;
+		*ity++;
+	    }
+	}
+    }
+}
+
+void GEMCoord::XYClusterMatchNormalMode(int detID, vector<GEMClusterStruct> &gem, 
+	list<GEMCluster*> &xlist, list<GEMCluster*> &ylist)
+{
+    int s1 = xlist.size();
+    int s2 = ylist.size();  
+    int nbCluster = (s1<s2)?s1:s2;
+
+    if(nbCluster != 0)
+    {
+	list<GEMCluster*>::iterator itx = xlist.begin();
+	list<GEMCluster*>::iterator ity = ylist.begin();
+	for(int i = 0;i<nbCluster;i++)
+	{
+	    pair<double, double> res;
+	    res = TransformGEMCoord(detID, make_pair((*itx)->GetClusterPosition(),(*ity)->GetClusterPosition()));
+#ifdef PROJECT_TO_ONE_PLANE
+	    if( detID == 0)
+		ProjectToGEM2(res); // project to gem2
+#endif
+	    float c_x = (*itx)->GetClusterADCs();
+	    float c_y = (*ity)->GetClusterADCs();
+	    float x = res.first;
+	    float y = res.second;
+	    GEMClusterStruct cluster(x, y, c_x, c_y);
+	    cluster.x_size = (*itx)->GetNbOfHits();
+	    cluster.y_size = (*ity)->GetNbOfHits();
+	    cluster.chamber_id = detID;
+	    cluster.z = z_gem[detID];
+	    gem.push_back(cluster);
+	    *itx++;
+	    *ity++;
+	}
+    }
+}
+
 
 void GEMCoord::FillHistos(TH1F* hNbClusterPerPlaneX[], 
 	TH1F* hNbClusterPerPlaneY[], 

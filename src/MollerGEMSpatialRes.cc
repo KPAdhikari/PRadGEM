@@ -8,7 +8,7 @@ using namespace std;
 
 MollerGEMSpatialRes::MollerGEMSpatialRes()
     : beam_energy(2147.), x_origin(0.),
-      y_origin(0.), z_gem1(5300.+20.), z_gem2(5260.+20.)
+      y_origin(0.), z_gem1(5300.), z_gem2(5260.)
 {
     diff.first = RES_UNDEFINED;
     diff.second = RES_UNDEFINED;
@@ -98,12 +98,12 @@ void MollerGEMSpatialRes::SetOrigin(pair<double, double> p)
     y_origin = p.second;
 }
 
-void MollerGEMSpatialRes::SetGEM1Z(double z = 5320.)
+void MollerGEMSpatialRes::SetGEM1Z(double z = 5300.)
 {
     z_gem1 = z;
 }
 
-void MollerGEMSpatialRes::SetGEM2Z(double z = 5280.)
+void MollerGEMSpatialRes::SetGEM2Z(double z = 5260.)
 {
     z_gem2 = z;
 }

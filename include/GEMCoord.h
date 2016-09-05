@@ -38,6 +38,14 @@ public:
 	    std::vector<GEMClusterStruct> &gem2);
     void GetPlaneClusterPlusMode(std::vector<GEMClusterStruct> &gem1,
 	    std::vector<GEMClusterStruct> &gem2);
+
+    void XYClusterMatchNormalMode(int , std::vector<GEMClusterStruct> &, 
+	    std::list<GEMCluster*> &, std::list<GEMCluster*> &);
+    void XYClusterMatchCutMode(int , std::vector<GEMClusterStruct> &, 
+	    std::list<GEMCluster*> &, std::list<GEMCluster*> &);
+    void XYClusterMatchPlusMode(int , std::vector<GEMClusterStruct> &, 
+	    std::list<GEMCluster*> &, std::list<GEMCluster*> &);
+
     void FillHistos(TH1F**, TH1F**, TH1F**, TH1F**);
 
     void InitPRadGeometry();
@@ -53,8 +61,7 @@ public:
 private:
     double origin_transfer;
     double overlap_length;
-    double z_gem1;
-    double z_gem2;
+    double z_gem[2];
 
     double gem_offset_x;
     double gem_offset_y;
