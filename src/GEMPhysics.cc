@@ -136,6 +136,7 @@ void GEMPhysics::CharactorizePlanePhysics()
     }
     moller_analyzer->Reset();
     ep_analyzer->Reset();
+    match_analyzer->Reset();
 }
 
 void GEMPhysics::CharactorizeOverlapPhysics()
@@ -197,6 +198,7 @@ void GEMPhysics::CharactorizeOverlapPhysics()
     gem2_moller_analyzer->Reset();
     gem1_ep_analyzer->Reset();
     gem2_ep_analyzer->Reset();
+    match_analyzer->Reset();
 }
 
 void GEMPhysics::SavePhysResults()

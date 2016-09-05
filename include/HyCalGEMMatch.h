@@ -20,6 +20,7 @@ public:
     std::vector<GEMClusterStruct> & GetMatchGEM2();
     std::vector<HyCalHit> & GetMatchHyCal();
     void Clear();
+    void Reset();
 
     // Note 1:
     // match starting from hycal, for each cluster on hycal
@@ -43,7 +44,10 @@ public:
     //void MatchAccordToGEM();
     //void MetaMatchAccordToGEM(std::vector<GEMClusterStruct> & _gem, 
 //	    std::vector<GEMClusterStruct> & _res);
-   
+    
+    // match core algorithm
+    int SinglePointMatchAlgorithm(double &match_criteria, std::vector<GEMClusterStruct> &, 
+        std::vector<HyCalHit> *, int & hycal_index, int & match_index);
     void ShowMatch(); // show match process
 
     void SetMatchCriteria(double & );

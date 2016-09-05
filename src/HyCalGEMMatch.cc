@@ -40,6 +40,11 @@ void HyCalGEMMatch::Clear()
     res_hycal.clear();
 }
 
+void HyCalGEMMatch::Reset()
+{
+    Clear();
+}
+
 vector<GEMClusterStruct> & HyCalGEMMatch::GetMatchGEM()
 {
     return res_gem;
@@ -103,7 +108,6 @@ int HyCalGEMMatch::MetaMatch()
 {
     // for each hit on hycal, look for its matching point on gem
     double res = delta;
-    double dr = 0.;
     int m_index;
     float m_e = 0.;
     bool match_gem1 = false;
@@ -112,36 +116,23 @@ int HyCalGEMMatch::MetaMatch()
     int n_hycal = hycal_hit->size();
     for(int i=0;i<n_hycal;i++) 
     {
-	double x = (hycal_hit->at(i).x);
-	double y = (hycal_hit->at(i).y);
 	match_gem1 = false;
 	match_gem2 = false;
 	res = delta;
 
 	for(int ii=0;ii<2;ii++)
 	{
-	    double z =0.;
-	    if( ii==0)
-		z = z_gem1;
-	    else
-		z = z_gem2;
-
-	    ProjectHyCalToPlaneZ(x, y, z);
-
-	    for(int j=0;j<gem[ii].size();j++){
-		dr = r(x-gem[ii][j].x, y-gem[ii][j].y);
-		if(dr < res) {
-		    res = dr;
-		    m_index = j;
-		    m_e = hycal_hit->at(i).E;
-		    if(ii == 0){
-			match_gem1 = true;
-			match_gem2 = false;
-		    }
-		    else{
-			match_gem2 = true;
-			match_gem1 = false;
-		    }
+	    int n_points = SinglePointMatchAlgorithm(res, gem[ii], hycal_hit, i, m_index);
+	    if(n_points != 0)
+	    {
+		m_e = hycal_hit->at(i).E;
+		if(ii == 0){
+		    match_gem1 = true;
+		    match_gem2 = false;
+		}
+		else {
+		    match_gem1 = false;
+		    match_gem2 = true;
 		}
 	    }
 	}
@@ -194,38 +185,61 @@ void HyCalGEMMatch::MatchByGEM()
 void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMClusterStruct> & _res)
 {
     double res = delta;
-    double dr = 0.;
     int m_index;
     float m_e = 0.;
     bool match_gem = false;
 
     int n_hycal = hycal_hit->size();
     int n_gem = _gem.size();
+
     double z = _gem[0].z;
     if( z<5200. || z > 5400)
 	cout<<" HyCal GEM Match: Z ERROR."<<endl;
 
-    for(int i=0;i<n_hycal;i++) {
-	double x = (hycal_hit->at(i).x);
-	double y = (hycal_hit->at(i).y);
-	ProjectHyCalToPlaneZ(x, y, z);
-
-	match_gem = false;
+    for(int i=0;i<n_hycal;i++) 
+    {
 	res = delta;
-	for(int j=0;j<n_gem;j++) {
-	    dr = r(x-_gem[j].x, y-_gem[j].y);
-	    if(dr < res) {
-		res = dr;
-		m_index = j;
-		m_e = hycal_hit->at(i).E;
-		match_gem = true;
-	    }
+	match_gem = false;
+	int n_points = SinglePointMatchAlgorithm(res, _gem, hycal_hit, i, m_index);
+	if( n_points != 0){
+	    match_gem = true;
+	    m_e = hycal_hit->at(i).E;
 	}
+
 	if( match_gem ) {
 	    _gem[m_index].energy = m_e;
 	    _res.push_back(_gem[m_index]);
 	}
     }
+}
+
+int HyCalGEMMatch::SinglePointMatchAlgorithm(double &match_criteria, vector<GEMClusterStruct> &gem, 
+	vector<HyCalHit> * hycal, int & index, int &match_index)
+{
+    // requirement: gem only contain points from one chamber, ( same  z_gem )
+    int points_within_range = 0;
+
+    int n_gem = gem.size();
+    double z = gem[0].z;
+    if(z<5200. || z> 5400)
+	cout<<" hycal gem match, z error..."<<endl;
+
+    double x = (hycal_hit->at(index).x);
+    double y = (hycal_hit->at(index).y);
+    ProjectHyCalToPlaneZ(x, y, z);
+
+    double dr = 0.;
+    for(int j=0;j<n_gem;j++) 
+    {
+	dr = r(x-gem[j].x, y-gem[j].y);
+	if(dr < match_criteria) 
+	{
+	    match_criteria = dr;
+	    match_index = j;
+	    points_within_range++;
+	}
+    }
+    return points_within_range;
 }
 
 #include <TGraph.h>
