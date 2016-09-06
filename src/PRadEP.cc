@@ -1,5 +1,6 @@
 #include "PRadEP.h"
 #include <TMath.h>
+#include <iostream>
 
 #define UNDEFINED_VALUE -1000.
 #define PI 3.1415926
@@ -69,6 +70,7 @@ void PRadEP::Reset()
     scatt_angle = UNDEFINED_VALUE;
     energy_angle.clear();
     positions.clear();
+    hycal_match.clear();
 }
 
 bool PRadEP::EnergyCut( double && e)
@@ -135,4 +137,14 @@ int & PRadEP::GetChamberID()
 void PRadEP::SetChamberID(int id)
 {
     chamber_id = id;
+}
+
+void PRadEP::SetHyCalMatch(vector<HyCalHit> hycal)
+{
+    hycal_match = hycal;
+}
+
+vector<HyCalHit> & PRadEP::GetHyCalMatch()
+{
+    return hycal_match;
 }

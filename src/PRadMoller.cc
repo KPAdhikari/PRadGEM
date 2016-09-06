@@ -56,6 +56,7 @@ void PRadMoller::Reset()
     moller_center.second = Undefined_Value;
     energy_angle.clear();
     positions.clear();
+    hycal_match.clear();
 }
 
 bool PRadMoller::PassCut()
@@ -346,4 +347,14 @@ void PRadMoller::SetEvtID(unsigned int id)
 unsigned int PRadMoller::GetEvtID()
 {
     return evt_id;
+}
+
+vector<HyCalHit> & PRadMoller::GetHyCalMatch()
+{
+    return hycal_match;
+}
+
+void PRadMoller::SetHyCalMatch(vector<HyCalHit> & hycal)
+{
+    hycal_match = hycal;
 }

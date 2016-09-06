@@ -19,6 +19,8 @@ public:
     std::vector<GEMClusterStruct> & GetMatchGEM1();
     std::vector<GEMClusterStruct> & GetMatchGEM2();
     std::vector<HyCalHit> & GetMatchHyCal();
+    std::vector<HyCalHit> & GetMatchHyCalGEM1();
+    std::vector<HyCalHit> & GetMatchHyCalGEM2();
     void Clear();
     void Reset();
 
@@ -35,7 +37,8 @@ public:
     // each gem chamber has its own matching result.
     void MatchByGEM(); 
     void MetaMatchByGEM(std::vector<GEMClusterStruct> & _gem, 
-	    std::vector<GEMClusterStruct> & _res);
+	    std::vector<GEMClusterStruct> & _res,
+	    std::vector<HyCalHit> &_hycal);
     // Note 3:
     // match starting from gem, for each cluster on gem
     // look up matching cluster on hycal.
@@ -65,6 +68,8 @@ private:
     std::vector<GEMClusterStruct> res_gem1;
     std::vector<GEMClusterStruct> res_gem2;
     std::vector<HyCalHit> res_hycal;
+    std::vector<HyCalHit> res_hycal_gem1;
+    std::vector<HyCalHit> res_hycal_gem2; 
     std::vector<GEMClusterStruct> gem[2];
     std::vector<HyCalHit> *hycal_hit;
 

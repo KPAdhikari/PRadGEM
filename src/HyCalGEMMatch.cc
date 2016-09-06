@@ -7,7 +7,7 @@ using namespace std;
 
 HyCalGEMMatch::HyCalGEMMatch()
 {
-    delta = 30.;
+    delta = 60.;
 
     // mm +[ chamber + screw cap thickness]
     z_gem1 = 5300.;
@@ -38,6 +38,8 @@ void HyCalGEMMatch::Clear()
     res_gem1.clear();
     res_gem2.clear();
     res_hycal.clear();
+    res_hycal_gem1.clear();
+    res_hycal_gem2.clear();
 }
 
 void HyCalGEMMatch::Reset()
@@ -63,6 +65,16 @@ vector<GEMClusterStruct> & HyCalGEMMatch::GetMatchGEM2()
 vector<HyCalHit> & HyCalGEMMatch::GetMatchHyCal()
 {
     return res_hycal;
+}
+
+vector<HyCalHit> & HyCalGEMMatch::GetMatchHyCalGEM1()
+{
+    return res_hycal_gem1;
+}
+
+vector<HyCalHit> & HyCalGEMMatch::GetMatchHyCalGEM2()
+{
+    return res_hycal_gem2;
 }
 
 void HyCalGEMMatch::SetMatchCriteria(double & c)
@@ -173,17 +185,17 @@ double HyCalGEMMatch::r(double && x, double && y)
 void HyCalGEMMatch::MatchByGEM()
 {
     Clear();
-    SetMatchCriteria(10.); 
+    //SetMatchCriteria(10.); 
     // Hard code a stricter match criteria
     // b/c overlapping area is 44mm
     gem_coord -> GetPlaneClusterPlusMode(gem[0], gem[1]);
     if(gem[0].size() != 0)
-	MetaMatchByGEM(gem[0], res_gem1);
+	MetaMatchByGEM(gem[0], res_gem1, res_hycal_gem1);
     if(gem[1].size() != 0)
-	MetaMatchByGEM(gem[1], res_gem2);
+	MetaMatchByGEM(gem[1], res_gem2, res_hycal_gem2);
 }
 
-void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMClusterStruct> & _res)
+void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMClusterStruct> & _res, vector<HyCalHit> &_hycal)
 {
     double res = delta;
     int m_index;
@@ -210,6 +222,7 @@ void HyCalGEMMatch::MetaMatchByGEM(vector<GEMClusterStruct> & _gem, vector<GEMCl
 	if( match_gem ) {
 	    _gem[m_index].energy = m_e;
 	    _res.push_back(_gem[m_index]);
+	    _hycal.push_back(hycal_hit->at(i));
 	}
     }
 }

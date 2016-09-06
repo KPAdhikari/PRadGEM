@@ -458,11 +458,15 @@ void GEMTree::InitOverlapTree()
     overlap_moller_tree -> Branch("gem1.chamber_id1", &olp_moller_data1.chamber_id1, "gem1.chamber_id1/I");
     overlap_moller_tree -> Branch("gem1.x1", &olp_moller_data1.x1, "gem1.x1/F");
     overlap_moller_tree -> Branch("gem1.y1", &olp_moller_data1.y1, "gem1.y1/F");
+    overlap_moller_tree -> Branch("gem1.x1_hycal", &olp_moller_data1.x1_hycal, "gem1.x1_hycal/F");
+    overlap_moller_tree -> Branch("gem1.y1_hycal", &olp_moller_data1.y1_hycal, "gem1.y1_hycal/F");
     overlap_moller_tree -> Branch("gem1.e1", &olp_moller_data1.e1, "gem1.e1/F");
     overlap_moller_tree -> Branch("gem1.angle1", &olp_moller_data1.angle1, "gem1.angle1/F");
     overlap_moller_tree -> Branch("gem1.chamber_id2", &olp_moller_data1.chamber_id2, "gem1.chamber_id2/I");
     overlap_moller_tree -> Branch("gem1.x2", &olp_moller_data1.x2, "gem1.x2/F");
     overlap_moller_tree -> Branch("gem1.y2", &olp_moller_data1.y2, "gem1.y2/F");
+    overlap_moller_tree -> Branch("gem1.x2_hycal", &olp_moller_data1.x2_hycal, "gem1.x2_hycal/F");
+    overlap_moller_tree -> Branch("gem1.y2_hycal", &olp_moller_data1.y2_hycal, "gem1.y2_hycal/F");
     overlap_moller_tree -> Branch("gem1.e2", &olp_moller_data1.e2, "gem1.e2/F");
     overlap_moller_tree -> Branch("gem1.angle2", &olp_moller_data1.angle2, "gem1.angle2/F");
     overlap_moller_tree -> Branch("gem1.coplanarity", &olp_moller_data1.coplanarity, "gem1.coplanarity/F");
@@ -471,11 +475,15 @@ void GEMTree::InitOverlapTree()
     overlap_moller_tree -> Branch("gem2.chamber_id1", &olp_moller_data2.chamber_id1, "gem2.chamber_id1/I");
     overlap_moller_tree -> Branch("gem2.x1", &olp_moller_data2.x1, "gem2.x1/F");
     overlap_moller_tree -> Branch("gem2.y1", &olp_moller_data2.y1, "gem2.y1/F");
+    overlap_moller_tree -> Branch("gem2.x1_hycal", &olp_moller_data2.x1_hycal, "gem2.x1_hycal/F");
+    overlap_moller_tree -> Branch("gem2.y1_hycal", &olp_moller_data2.y1_hycal, "gem2.y1_hycal/F");
     overlap_moller_tree -> Branch("gem2.e1", &olp_moller_data2.e1, "gem2.e1/F");
     overlap_moller_tree -> Branch("gem2.angle1", &olp_moller_data2.angle1, "gem2.angle1/F");
     overlap_moller_tree -> Branch("gem2.chamber_id2", &olp_moller_data2.chamber_id2, "gem2.chamber_id2/I");
     overlap_moller_tree -> Branch("gem2.x2", &olp_moller_data2.x2, "gem2.x2/F");
     overlap_moller_tree -> Branch("gem2.y2", &olp_moller_data2.y2, "gem2.y2/F");
+    overlap_moller_tree -> Branch("gem2.x2_hycal", &olp_moller_data2.x2_hycal, "gem2.x2_hycal/F");
+    overlap_moller_tree -> Branch("gem2.y2_hycal", &olp_moller_data2.y2_hycal, "gem2.y2_hycal/F");
     overlap_moller_tree -> Branch("gem2.e2", &olp_moller_data2.e2, "gem2.e2/F");
     overlap_moller_tree -> Branch("gem2.angle2", &olp_moller_data2.angle2, "gem2.angle2/F");
     overlap_moller_tree -> Branch("gem2.coplanarity", &olp_moller_data2.coplanarity, "gem2.coplanarity/F");
@@ -484,6 +492,8 @@ void GEMTree::InitOverlapTree()
     overlap_ep_tree -> Branch("gem1.chamber_id", &olp_ep_data1.chamber_id, "gem1.chamber_id/I");
     overlap_ep_tree -> Branch("gem1.x", &olp_ep_data1.x, "gem1.x/F");
     overlap_ep_tree -> Branch("gem1.y", &olp_ep_data1.y, "gem1.y/F");
+    overlap_ep_tree -> Branch("gem1.x_hycal", &olp_ep_data1.x_hycal, "gem1.x_hycal/F");
+    overlap_ep_tree -> Branch("gem1.y_hycal", &olp_ep_data1.y_hycal, "gem1.y_hycal/F");
     overlap_ep_tree -> Branch("gem1.e", &olp_ep_data1.e, "gem1.e/F");
     overlap_ep_tree -> Branch("gem1.angle", &olp_ep_data1.angle, "gem1.angle/F");
     //gem2
@@ -491,6 +501,8 @@ void GEMTree::InitOverlapTree()
     overlap_ep_tree -> Branch("gem2.chamber_id", &olp_ep_data2.chamber_id, "gem2.chamber_id/I");
     overlap_ep_tree -> Branch("gem2.x", &olp_ep_data2.x, "gem2.x/F");
     overlap_ep_tree -> Branch("gem2.y", &olp_ep_data2.y, "gem2.y/F");
+    overlap_ep_tree -> Branch("gem2.x_hycal", &olp_ep_data2.x_hycal, "gem2.x_hycal/F");
+    overlap_ep_tree -> Branch("gem2.y_hycal", &olp_ep_data2.y_hycal, "gem2.y_hycal/F");
     overlap_ep_tree -> Branch("gem2.e", &olp_ep_data2.e, "gem2.e/F");
     overlap_ep_tree -> Branch("gem2.angle", &olp_ep_data2.angle, "gem2.angle/F");
 }
@@ -499,6 +511,8 @@ void GEMTree::PushOverlapMollerTree(PRadMoller *moller1, PRadMoller * moller2)
 {
     vector<pair<double, double> > ea1 = moller1->EnergyAngle();
     vector<pair<double, double> > ea2 = moller2->EnergyAngle();
+    vector<HyCalHit> hycal_gem1 = moller1->GetHyCalMatch();
+    vector<HyCalHit> hycal_gem2 = moller2->GetHyCalMatch();
 
     if(ea1.size() == 2 && ea2.size()==2) {
 	olp_empty_moller_event = false;
@@ -514,12 +528,16 @@ void GEMTree::PushOverlapMollerTree(PRadMoller *moller1, PRadMoller * moller2)
     olp_moller_data1.chamber_id1 = pos1[0].first;
     olp_moller_data1.x1 = pos1[0].second.first;
     olp_moller_data1.y1 = pos1[0].second.second;
+    olp_moller_data1.x1_hycal = hycal_gem1[0].x;
+    olp_moller_data1.y1_hycal = hycal_gem1[0].y;
     olp_moller_data1.e1 = ea1[0].first;
     olp_moller_data1.angle1 = ea1[0].second;
 
     olp_moller_data1.chamber_id2 = pos1[1].first;
     olp_moller_data1.x2 = pos1[1].second.first;
     olp_moller_data1.y2 = pos1[1].second.second;
+    olp_moller_data1.x2_hycal = hycal_gem1[1].x;
+    olp_moller_data1.y2_hycal = hycal_gem1[1].y;
     olp_moller_data1.e2 = ea1[1].first;
     olp_moller_data1.angle2 = ea1[1].second;
     // gem2
@@ -530,12 +548,16 @@ void GEMTree::PushOverlapMollerTree(PRadMoller *moller1, PRadMoller * moller2)
     olp_moller_data2.chamber_id1 = pos2[0].first;
     olp_moller_data2.x1 = pos2[0].second.first;
     olp_moller_data2.y1 = pos2[0].second.second;
+    olp_moller_data2.x1_hycal = hycal_gem2[0].x;
+    olp_moller_data2.y1_hycal = hycal_gem2[0].y;
     olp_moller_data2.e1 = ea2[0].first;
     olp_moller_data2.angle1 = ea2[0].second;
 
     olp_moller_data2.chamber_id2 = pos2[1].first;
     olp_moller_data2.x2 = pos2[1].second.first;
     olp_moller_data2.y2 = pos2[1].second.second;
+    olp_moller_data2.x2_hycal = hycal_gem2[1].x;
+    olp_moller_data2.y2_hycal = hycal_gem2[1].y;
     olp_moller_data2.e2 = ea2[1].first;
     olp_moller_data2.angle2 = ea2[1].second;
 }
@@ -544,7 +566,9 @@ void GEMTree::PushOverlapEpTree(PRadEP *ep1, PRadEP *ep2)
 {
     vector<pair<double, double> > ea1 = ep1->EnergyAngle();
     vector<pair<double, double> > ea2 = ep2->EnergyAngle();
- 
+    vector<HyCalHit> hycal_gem1 = ep1 -> GetHyCalMatch();
+    vector<HyCalHit> hycal_gem2 = ep2 -> GetHyCalMatch();
+
     if(ea1.size() == 1  && ea2.size() ==1) {
 	olp_empty_ep_event = false;
     }
@@ -557,6 +581,8 @@ void GEMTree::PushOverlapEpTree(PRadEP *ep1, PRadEP *ep2)
     vector<pair<double, double> > pos1 = ep1->Positions();
     olp_ep_data1.x = pos1[0].first;
     olp_ep_data1.y = pos1[0].second;
+    olp_ep_data1.x_hycal = hycal_gem1[0].x;
+    olp_ep_data1.y_hycal = hycal_gem1[0].y;
     olp_ep_data1.e = ea1[0].first;
     olp_ep_data1.angle = ea1[0].second;
     //gem2
@@ -565,6 +591,8 @@ void GEMTree::PushOverlapEpTree(PRadEP *ep1, PRadEP *ep2)
     vector<pair<double, double> > pos2 = ep2->Positions();
     olp_ep_data2.x = pos2[0].first;
     olp_ep_data2.y = pos2[0].second;
+    olp_ep_data2.x_hycal = hycal_gem2[0].x;
+    olp_ep_data2.y_hycal = hycal_gem2[0].y;
     olp_ep_data2.e = ea2[0].first;
     olp_ep_data2.angle = ea2[0].second;
 }

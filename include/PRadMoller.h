@@ -1,8 +1,11 @@
 #ifndef PRADMOLLER_H
 #define PRADMOLLER_H
 
-#include "GEMDataStruct.h"
 #include <vector>
+#include <cstring>
+#include "datastruct.h"
+#include "GEMDataStruct.h"
+#include "PRadEventStruct.h"
 
 class MollerGEMSpatialRes;
 
@@ -43,6 +46,8 @@ public:
     std::vector<std::pair<int, std::pair<double, double> > > & Positions();
     std::pair<double, double> & MollerCenter();
     MollerGEMSpatialRes * GetSpatialResHandler();
+    std::vector<HyCalHit> & GetHyCalMatch();
+    void SetHyCalMatch(std::vector<HyCalHit> & hycal_match_hit);
 
 private:
     MollerGEMSpatialRes * gem_pos_res;
@@ -60,6 +65,9 @@ private:
     // note: moller center is on z=5230 plane
     std::pair<double , double > moller_center;
     std::vector< std::pair<int, std::pair<double, double> > > previous_positions;
+
+    // the matching hits on hycal
+    std::vector<HyCalHit> hycal_match;
 };
 
 #endif

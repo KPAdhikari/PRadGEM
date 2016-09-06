@@ -1,7 +1,11 @@
 #ifndef PRAD_EP_H
 #define PRAD_EP_H
+
 #include <vector>
+#include <cstring>
+#include "datastruct.h"
 #include "GEMDataStruct.h"
+#include "PRadEventStruct.h"
 
 class PRadEP
 {
@@ -31,6 +35,9 @@ public:
     int & GetChamberID();
     void SetChamberID(int );
 
+    std::vector<HyCalHit> & GetHyCalMatch();
+    void SetHyCalMatch(std::vector<HyCalHit> hycal_match_hits);
+
 private:
     unsigned int evt_id;
     std::vector<GEMClusterStruct> *gem;
@@ -41,6 +48,9 @@ private:
     std::vector< std::pair<double, double > > energy_angle;
     std::vector< std::pair<double, double > > positions;
     int chamber_id;
+
+    // mathing hycal hits
+    std::vector<HyCalHit> hycal_match;
 };
 
 #endif

@@ -119,6 +119,7 @@ void GEMPhysics::CharactorizePlanePhysics()
 	if(IsHyCalGEMMatchSucess(gem)){
 	    moller_analyzer -> SetEvtID( evt_id);
 	    moller_analyzer -> ProcessData(&gem);
+	    moller_analyzer -> SetHyCalMatch( match_analyzer->GetMatchHyCal() );
 	    rst_tree->PushMoller(moller_analyzer);
 	    rst_tree->FillMollerTree();
 	}
@@ -126,6 +127,7 @@ void GEMPhysics::CharactorizePlanePhysics()
     else if( gem.size() == 1) {
 	ep_analyzer -> SetEvtID(evt_id);
 	ep_analyzer -> ProcessData(&gem);
+	ep_analyzer -> SetHyCalMatch( match_analyzer->GetMatchHyCal() );
 	rst_tree->PushEP(ep_analyzer);
 	rst_tree->FillEPTree();
     }
@@ -156,6 +158,7 @@ void GEMPhysics::CharactorizeOverlapPhysics()
 	if(IsHyCalGEMMatchSucess(gem1)){
 	    gem1_moller_analyzer -> SetEvtID( evt_id);
 	    gem1_moller_analyzer -> ProcessData(&gem1);
+	    gem1_moller_analyzer -> SetHyCalMatch( match_analyzer -> GetMatchHyCalGEM1() );
 	    rst_tree->PushProdOffset(0, gem1_moller_analyzer);
 	    //rst_tree->FillProdOffsetTree();
 	}
@@ -164,20 +167,23 @@ void GEMPhysics::CharactorizeOverlapPhysics()
         gem1_ep_analyzer -> SetChamberID(gem1[0].chamber_id);
 	gem1_ep_analyzer -> SetEvtID(evt_id);
 	gem1_ep_analyzer -> ProcessData(&gem1);
+	gem1_ep_analyzer -> SetHyCalMatch( match_analyzer -> GetMatchHyCalGEM1() );
     }
 
     if( gem2.size() == 2){
 	if(IsHyCalGEMMatchSucess(gem2)){
 	    gem2_moller_analyzer -> SetEvtID( evt_id);
 	    gem2_moller_analyzer -> ProcessData(&gem2);
+	    gem2_moller_analyzer -> SetHyCalMatch( match_analyzer -> GetMatchHyCalGEM2() );
 	    rst_tree->PushProdOffset(1, gem2_moller_analyzer);
 	    //rst_tree->FillProdOffsetTree();
 	}
     }
     else if(gem2.size() == 1){
-        gem2_ep_analyzer -> SetChamberID(gem2[0].chamber_id);
+	gem2_ep_analyzer -> SetChamberID(gem2[0].chamber_id);
 	gem2_ep_analyzer -> SetEvtID(evt_id);
 	gem2_ep_analyzer -> ProcessData(&gem2);
+	gem2_ep_analyzer -> SetHyCalMatch( match_analyzer -> GetMatchHyCalGEM2() );
     }
 
     if( gem2.size()==2 || gem1.size()==2) 
