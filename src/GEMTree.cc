@@ -68,44 +68,51 @@ void GEMTree::InitGEMTree(int ndet)
 
 void GEMTree::InitPhysicsTree()
 {
-    //physics_file = new TFile("root_file/physics.root", "recreate");
     moller_tree = new TTree("moller_tree", "moller tree");
     moller_tree -> SetDirectory(file);
     ep_tree = new TTree("ep_tree", "ep tree");
     ep_tree -> SetDirectory(file);
     ep_moller_tree = new TTree("ep_moller_tree", "ep moller tree");
     ep_moller_tree->SetDirectory(file);
-    
-    moller_tree->Branch("evt_id", &evt_id, "evt_id/I");
-    moller_tree->Branch("nCluster", &nCluster, "nCluster/I");
-    moller_tree->Branch("moller_scatt_angle1", &moller_scatt_angle1, "moller_scatt_angle1/F");
-    moller_tree->Branch("moller_scatt_angle2", &moller_scatt_angle2, "moller_scatt_angle2/F");
-    moller_tree->Branch("moller_scatt_energy1", &moller_scatt_energy1, "moller_scatt_energy1/F");
-    moller_tree->Branch("moller_scatt_energy2", &moller_scatt_energy2, "moller_scatt_energy2/F");
-    moller_tree->Branch("scatt_x", scatt_x, "scatt_x[nCluster]/F");
-    moller_tree->Branch("scatt_y", scatt_y, "scatt_y[nCluster]/F");
-    moller_tree->Branch("detector_id", detector_id, "detector_id[nCluster]/I");
-    moller_tree->Branch("coplanarity", &coplanarity, "coplanarity/F");
-    moller_tree->Branch("open_angle", &open_angle, "open_angle/F");
-    moller_tree->Branch("scatt_energy", scatt_energy, "scatt_energy[nCluster]/F");
-    moller_tree->Branch("scatt_angle", scatt_angle, "scatt_angle[nCluster]/F");
+    // moller 
+    moller_tree->Branch("evt_id", &moller_data.event_id, "evt_id/I");
+    moller_tree->Branch("chamber_id1", &moller_data.chamber_id1, "chamber_id1/I");
+    moller_tree->Branch("x1", &moller_data.x1, "x1/F");
+    moller_tree->Branch("y1", &moller_data.y1, "y1/F");
+    moller_tree->Branch("x1_hycal", &moller_data.x1_hycal, "x1_hycal/F");
+    moller_tree->Branch("y1_hycal", &moller_data.y1_hycal, "y1_hycal/F");
+    moller_tree->Branch("e1", &moller_data.e1, "e1/F");
+    moller_tree->Branch("angle1", &moller_data.angle1, "angle1/F");
+    moller_tree->Branch("chamber_id2", &moller_data.chamber_id2, "chamber_id2/I");
+    moller_tree->Branch("x2", &moller_data.x2, "x2/F");
+    moller_tree->Branch("y2", &moller_data.y2, "y2/F");
+    moller_tree->Branch("x2_hycal", &moller_data.x2_hycal, "x2_hycal/F");
+    moller_tree->Branch("y2_hycal", &moller_data.y2_hycal, "y2_hycal/F");
+    moller_tree->Branch("e2", &moller_data.e2, "e2/F");
+    moller_tree->Branch("angle2", &moller_data.angle2, "angle2/F");
+    moller_tree->Branch("coplanarity", &moller_data.coplanarity, "coplanarity/F");
     moller_tree->Branch("moller_center_x", &moller_center_x, "moller_center_x/F");
     moller_tree->Branch("moller_center_y", &moller_center_y, "moller_center_y/F");
     moller_tree->Branch("moller_pos_res_dx", &moller_pos_res_dx, "moller_pos_res_dx/F");
     moller_tree->Branch("moller_pos_res_dy", &moller_pos_res_dy, "moller_pos_res_dy/F");
-
-    ep_tree -> Branch("evt_id", &evt_id, "evt_id/I");
-    ep_tree -> Branch("nCluster", &nCluster, "nCluster/I");
-    ep_tree -> Branch("scatt_energy", scatt_energy, "scatt_energy[nCluster]/F");
-    ep_tree -> Branch("scatt_angle", scatt_angle, "scatt_angle[nCluster]/F");
-    ep_tree->Branch("scatt_x", scatt_x, "scatt_x[nCluster]/F");
-    ep_tree->Branch("scatt_y", scatt_y, "scatt_y[nCluster]/F");
+    // ep
+    ep_tree -> Branch("evt_id", &ep_data.event_id, "evt_id/I");
+    ep_tree -> Branch("chamber_id", &ep_data.chamber_id, "chamber_id/I");
+    ep_tree -> Branch("x", &ep_data.x, "x/F");
+    ep_tree -> Branch("y", &ep_data.y, "y/F");
+    ep_tree -> Branch("x_hycal", &ep_data.x_hycal, "x_hycal/F");
+    ep_tree -> Branch("y_hycal", &ep_data.y_hycal, "y_hycal/F");
+    ep_tree -> Branch("e", &ep_data.e, "e/F");
+    ep_tree -> Branch("angle", &ep_data.angle, "angle/F");
     ep_tree -> Branch("q_square", &q_square, "q_square/F");
-
+    // moller + ep
     ep_moller_tree -> Branch("evt_id", &evt_id, "evt_id/I");
     ep_moller_tree -> Branch("nCluster", &nCluster, "nCluster/I");
+    ep_moller_tree -> Branch("det_id", detector_id, "det_id[nCluster]/I");
     ep_moller_tree -> Branch("scatt_energy", scatt_energy, "scatt_energy[nCluster]/F");
     ep_moller_tree -> Branch("scatt_angle", scatt_angle, "scatt_angle[nCluster]/F");
+    ep_moller_tree -> Branch("scatt_x", scatt_x, "scatt_x[nCluster]/F");
+    ep_moller_tree -> Branch("scatt_y", scatt_y, "scatt_y[nCluster]/F");
 }
 
 void GEMTree::InitEpicsTree()
@@ -156,45 +163,59 @@ void GEMTree::PushDetector(int nthDet, std::vector<GEMClusterStruct> Gem)
 
 void GEMTree::PushMoller(PRadMoller * moller)
 {
-    nCluster = 2;
     vector<pair<double, double> > ea = moller->EnergyAngle();
+    vector<HyCalHit> hycal_hit = moller->GetHyCalMatch();
+
     if(ea.size() == 2) {
 	empty_moller_event = false;
     }
     else {
 	return;
     }
+    
+    // moller
+    moller_data.event_id = moller->GetEvtID();
+    moller_data.coplanarity = moller->Coplanarity();
 
-    evt_id = moller->GetEvtID();
     vector<pair<int, pair<double, double> > > pos = moller->Positions();
-    open_angle = moller->OpenAngle();
-    coplanarity = moller->Coplanarity();
-    int ii = 0;
-    for(auto &i: ea)
-    {
-	scatt_angle[ii] = i.second;
-	scatt_energy[ii] = i.first;
-	//temp
-	scatt_x[ii] = pos[ii].second.first;
-	scatt_y[ii] = pos[ii].second.second;
-	detector_id[ii] = pos[ii].first;
-	ii++;
-    }
-    moller_scatt_angle1 = scatt_angle[0];
-    moller_scatt_angle2 = scatt_angle[1];
-    moller_scatt_energy1 = scatt_energy[0];
-    moller_scatt_energy2 = scatt_energy[1];
+    moller_data.chamber_id1 = pos[0].first;
+    moller_data.x1 = pos[0].second.first;
+    moller_data.y1 = pos[0].second.second;
+    moller_data.x1_hycal = hycal_hit[0].x;
+    moller_data.y1_hycal = hycal_hit[0].y;
+    moller_data.e1 = ea[0].first;
+    moller_data.angle1 = ea[0].second;
+    moller_data.chamber_id2 = pos[1].first;
+    moller_data.x2 = pos[1].second.first;
+    moller_data.y2 = pos[1].second.second;
+    moller_data.x2_hycal = hycal_hit[1].x;
+    moller_data.y2_hycal = hycal_hit[1].y;
+    moller_data.e2 = ea[1].first;
+    moller_data.angle2 = ea[1].second;
+
     moller_center_x = moller->MollerCenter().first;
     moller_center_y = moller->MollerCenter().second;
     pair<double, double> reso = moller->GetSpatialResHandler()->GetDiff();
     moller_pos_res_dx = reso.first;
     moller_pos_res_dy = reso.second;
+
+    // moller + ep
+    nCluster = 2;
+    for(int i=0;i<nCluster;i++)
+    {
+        detector_id[i] = pos[i].first;
+	scatt_x[i] = pos[i].second.first;
+	scatt_y[i] = pos[i].second.second;
+	scatt_energy[i] = ea[i].first;
+	scatt_angle[i] = ea[i].second;
+    }
 }
 
 void GEMTree::PushEP(PRadEP * ep)
 {
-    nCluster = 1;
     vector<pair<double, double> > ea = ep->EnergyAngle();
+    vector<HyCalHit> hycal_hit = ep->GetHyCalMatch();
+
     if(ea.size() == 1 ) {
 	empty_ep_event = false;
     }
@@ -202,19 +223,25 @@ void GEMTree::PushEP(PRadEP * ep)
 	return;
     }
 
-    evt_id = ep->GetEvtID();
+    ep_data.event_id = ep->GetEvtID();
+    ep_data.chamber_id = ep->GetChamberID();
     vector<pair<double, double> > pos = ep->Positions();
-    int ii = 0;
-    for(auto &i: ea)
-    {
-	scatt_angle[ii] = i.second;
-	scatt_energy[ii] = i.first;
-	//temp
-	scatt_x[ii] = pos[ii].first;
-	scatt_y[ii] = pos[ii].second;
-	ii++;
-    }
+    ep_data.x = pos[0].first;
+    ep_data.y = pos[0].second;
+    ep_data.x_hycal = hycal_hit[0].x;
+    ep_data.y_hycal = hycal_hit[0].y;
+    ep_data.e = ea[0].first;
+    ep_data.angle = ea[0].second;
+
     q_square = ep -> QSquare();
+
+    // moller + ep
+    nCluster = 1;
+    detector_id[0] = ep->GetChamberID();
+    scatt_x[0] = pos[0].first;
+    scatt_y[0] = pos[0].second;
+    scatt_energy[0] = ea[0].first;
+    scatt_angle[0] = ea[0].second;
 }
 
 void GEMTree::FillMollerTree()
@@ -389,7 +416,7 @@ void GEMTree::PushProdOffset(int i, PRadMoller * moller)
 {
     vector<pair<double, double> > ea = moller->EnergyAngle();
     if( ea.size() == 2 ){
-        evt_id = moller -> GetEvtID();
+	evt_id = moller -> GetEvtID();
 	if( i==0){
 	    empty_prod_gem1 = false;
 	    prod_gem1_ncluster=2;
@@ -430,7 +457,7 @@ void GEMTree::PushProdOffset(int i, PRadMoller * moller)
 void GEMTree::FillProdOffsetTree()
 {
     if( (!empty_prod_gem1) && (!empty_prod_gem2)){
-        prod_offset_x = -(prod_gem1_dx - prod_gem2_dx);
+	prod_offset_x = -(prod_gem1_dx - prod_gem2_dx);
 	prod_offset_y = -(prod_gem1_dy - prod_gem2_dy);
 	prod_offset_tree_res->Fill();
     }
@@ -600,9 +627,9 @@ void GEMTree::PushOverlapEpTree(PRadEP *ep1, PRadEP *ep2)
 void GEMTree::FillOverlapTree()
 {
     if( !olp_empty_moller_event)
-        overlap_moller_tree->Fill();
+	overlap_moller_tree->Fill();
     if( !olp_empty_ep_event)
-        overlap_ep_tree->Fill();
+	overlap_ep_tree->Fill();
     olp_empty_moller_event = true;
     olp_empty_ep_event = true;
 }

@@ -150,29 +150,28 @@ private:
     int event_id;
 
     //PHYSICS TREE
+    // moller
     bool empty_moller_event;
     TTree *moller_tree;
-    bool empty_ep_event;
-    TTree *ep_tree;
-    TTree *ep_moller_tree;
-    const int static _ncluster = 10;
-    int nCluster;
-    float moller_scatt_angle1;
-    float moller_scatt_energy1;
-    float moller_scatt_angle2;
-    float moller_scatt_energy2;
+    moller_data_t moller_data;
     float moller_center_x;
     float moller_center_y;
     float moller_pos_res_dx;
     float moller_pos_res_dy;
+    // ep 
+    bool empty_ep_event;
+    TTree *ep_tree;
+    ep_data_t ep_data;
+    float q_square;
+    // ep + moller
+    TTree *ep_moller_tree;
+    const int static _ncluster = 10;
+    int nCluster;
     float scatt_energy[_ncluster];
     float scatt_angle[_ncluster];
-    float open_angle;
-    float coplanarity;
     float scatt_x[_ncluster];
     float scatt_y[_ncluster];
     int detector_id[_ncluster];
-    float q_square;
 
     // offset from calibration runs
     TTree *cali_offset_tree;

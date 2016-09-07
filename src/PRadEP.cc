@@ -57,6 +57,7 @@ void PRadEP::Process()
     scatt_angle = RadToDec(theta);
     energy_angle.emplace_back(gem->at(0).energy, scatt_angle);
     positions.emplace_back(gem->at(0).x, gem->at(0).y);
+    chamber_id = gem->at(0).chamber_id;
 
     // q square
     double numerator = 4.0*(beam_energy/1000)*(beam_energy/1000)*TMath::Sin(theta/2)*TMath::Sin(theta/2);
