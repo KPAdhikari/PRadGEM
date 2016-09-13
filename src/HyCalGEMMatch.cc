@@ -9,10 +9,9 @@ HyCalGEMMatch::HyCalGEMMatch()
 {
     delta = 60.;
 
-    // mm +[ chamber + screw cap thickness]
-    z_gem1 = 5300.;
-    z_gem2 = 5260.;
-    z_hycal = 5600.;
+    z_gem1 = 5304.;
+    z_gem2 = 5264.;
+    z_hycal = 5817.;
 }
 
 HyCalGEMMatch::~HyCalGEMMatch()

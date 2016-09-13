@@ -92,13 +92,13 @@ void GEMCoord::InitPRadGeometry()
     //
     //    beam downstream is z axis direction
     //    chamber thickness + screw thickness = 20mm
-    //    5300 and 5260 do not include this 20mm
+    //    5304 and 5264 do not include this 20mm
     //---------------------------------------------
     
     origin_transfer = 253.2;
     overlap_length = 44.;
-    z_gem[0] = 5300.;
-    z_gem[1] = 5260.;
+    z_gem[0] = 5304.;
+    z_gem[1] = 5264.;
 
     gem_offset_x = 0.;
     gem_offset_y = 0.;
