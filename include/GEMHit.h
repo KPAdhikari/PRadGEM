@@ -22,83 +22,49 @@ public:
     ~GEMHit() ;
 
     void TimingFindPeakTimeBin() ;
-    Bool_t IsSortable() const { 
-        return kTRUE; 
-    }
+    Bool_t IsSortable() const { return kTRUE; }
 
     // sort hit according to the strip number
-    Int_t Compare(const TObject *obj) const { 
-        return (fStripNo > ((GEMHit*)obj)->GetStripNo()) ? 1 : -1; 
-    }
+    Int_t Compare(const TObject *obj) const { return (fStripNo > ((GEMHit*)obj)->GetStripNo()) ? 1 : -1; }
     void ComputePosition() ;
 
     void AddTimeBinADCs(Int_t timebin, Float_t charges) ;
-    void ClearTimeBinADCs() {
-        fTimeBinADCs.clear() ;
-    }
+    void ClearTimeBinADCs() { fTimeBinADCs.clear() ;}
 
-    Int_t GetAPVID() {
-        return fAPVID;
-    }
-    Int_t GetAPVOrientation() {
-        return fAPVOrientation;
-    }
-    Int_t GetAPVIndexOnPlane() {
-        return fAPVIndexOnPlane;
-    }
-    Int_t GetNbAPVsFromPlane() {
-        return fNbOfAPVsOnPlane;
-    }
-    Float_t GetHitADCs() {
-        return fHitADCs;
-    }
-    void SetHitADCs(Float_t adc){
-        fHitADCs = adc;
-    }
+    Int_t GetAPVID() { return fAPVID;}
+    Int_t GetAPVOrientation() { return fAPVOrientation;}
+    Int_t GetAPVIndexOnPlane() { return fAPVIndexOnPlane;}
+    Int_t GetNbAPVsFromPlane() { return fNbOfAPVsOnPlane;}
+    Float_t GetHitADCs() { return fHitADCs;}
+    void SetHitADCs(Float_t adc){fHitADCs = adc;}
 
-    std::map <Int_t, Float_t> GetTimeBinADCs() { 
-        return fTimeBinADCs ;
-    }
+    std::map <Int_t, Float_t> GetTimeBinADCs() { return fTimeBinADCs ; }
 
     Int_t StripMapping(Int_t chNo) ;
     Int_t APVchannelCorrection(Int_t chNo) ;
     Int_t PRadStripMapping(Int_t chNo) ;
 
-    Int_t GetSignalPeakTimeBin() {
+    Int_t GetSignalPeakTimeBin() 
+    {
 	TimingFindPeakTimeBin() ;
 	return fSignalPeakTimeBin;
     }
 
-    TString GetPlane() {
-        return fPlane;
-    }
-    Float_t GetPlaneSize() {
-        return fPlaneSize;
-    }
+    TString GetPlane() { return fPlane; }
+    Float_t GetPlaneSize() { return fPlaneSize; }
 
-    TString GetDetector() {
-        return fDetector;
-    }
-    TString GetDetectorType() {
-        return fDetectorType;
-    }
-    TString GetReadoutBoard() {
-        return fReadoutBoard;
-    }
-    TString GetHitMaxOrTotalADCs() { 
-        return fIsHitMaxOrTotalADCs ;
-    } 
+    TString GetDetector() { return fDetector; }
+    TString GetDetectorType() { return fDetectorType; }
+    TString GetReadoutBoard() { return fReadoutBoard; }
+    TString GetHitMaxOrTotalADCs() { return fIsHitMaxOrTotalADCs ; } 
 
     void  SetStripNo() ;
 
-    Int_t GetStripNo(){
-        return fStripNo;
-    }
-    Int_t GetAbsoluteStripNo() {
-        return fAbsoluteStripNo;
-    }
+    Int_t GetStripNo(){ return fStripNo; }
+    Int_t GetAbsoluteStripNo() { return fAbsoluteStripNo; }
 
-    Float_t GetStripPosition() {
+    Float_t GetStripPosition() 
+    {
 	ComputePosition() ;
 	return fStripPosition;
     }
