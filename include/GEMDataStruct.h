@@ -134,4 +134,63 @@ struct EpicsStruct
     }
 };
 
+struct moller_data_t
+{
+    unsigned int event_id;
+    int chamber_id1;
+    float x1;
+    float y1;
+    float x1_hycal;
+    float y1_hycal;
+    float e1;
+    float angle1;
+    int chamber_id2;
+    float x2;
+    float y2;
+    float x2_hycal;
+    float y2_hycal;
+    float e2;
+    float angle2;
+
+    float coplanarity;
+
+    moller_data_t()
+	: event_id(0), chamber_id1(0),  x1(0),y1(0), 
+	x1_hycal(0), y1_hycal(0),
+	e1(0), angle1(0), chamber_id2(0), x2(0), y2(0), 
+	x2_hycal(0), y2_hycal(0),
+	e2(0), angle2(0), coplanarity(0)
+    {}
+};
+
+struct ep_data_t
+{
+    unsigned int event_id;
+    int chamber_id;
+    float x;
+    float y;
+    float x_hycal;
+    float y_hycal;
+    float e;
+    float angle;
+
+    ep_data_t()
+	: event_id(0), chamber_id(0), x(0),
+	y(0), x_hycal(0), y_hycal(0), e(0), angle(0)
+    {}
+};
+
+struct Energy_Angle
+{
+    double energy;
+    double angle;
+    Energy_Angle(double e, double a)
+	: energy(e), angle(a)
+    {}
+    Energy_Angle()
+	: energy(-10000), angle(-10000)
+    {}
+};
+
+
 #endif

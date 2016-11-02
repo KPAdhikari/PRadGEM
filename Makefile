@@ -40,7 +40,7 @@ cflags  := $(shell root-config --cflags)
 
 incfile := -I/home/xbai/w/coda/common/include -I/home/xbai/w/pRad/source/PRadDecoder/lib/include -I./include
 
-flags   := -O3 -std=c++11 $(glibs) $(cflags) $(incfile) -L/home/xbai/w/coda/Linux-x86_64/lib -levio -levioxx -lexpat -L/home/xbai/w/pRad/source/PRadDecoder/lib -lPRadDecoder
+flags   := -O3 -g -std=c++11 $(glibs) $(cflags) $(incfile) -L/home/xbai/w/coda/Linux-x86_64/lib -levio -levioxx -lexpat -L/home/xbai/w/pRad/source/PRadDecoder/lib -lPRadDecoder
 
 $(Target) : $(OBJS)
 	@$(cc) -o $(Target) $(OBJS) $(flags)

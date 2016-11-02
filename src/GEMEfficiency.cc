@@ -19,6 +19,8 @@
 
 //#define POSITION_MATCH_HYCAL
 
+#define SAVE_CALIBRATION_DATA_TREE
+
 using namespace std;
 
 GEMEfficiency::GEMEfficiency()
@@ -80,17 +82,34 @@ void GEMEfficiency::AccumulateEvent(unsigned int evtID, unordered_map<int, vecto
 	unordered_multimap<string, double> & tdc_channel_value)
 {
     SetEventNumber(evtID);
-    if( TDCCut(tdc_channel_value) ) {
+
+#ifdef SAVE_CALIBRATION_DATA_TREE
+    hit_decoder->ProcessEvent(event);
+
+    vector<GEMClusterStruct> gem1, gem2;
+    gem_coord -> GetClusterGEMPlusMode(0, gem1);
+    gem_coord -> GetClusterGEMPlusMode(1, gem2);
+
+    hycal_hit = reconstructor -> CoarseHyCalReconstruct(pHandler->GetEventCount()-1);
+    gem_tree->PushCalibrationData(gem1, gem2, tdc_channel_value, &hycal_hit);
+    gem_tree->FillGEMTree();
+
+#else
+    if( TDCCut(tdc_channel_value) )
+    {
 	hit_decoder->ProcessEvent(event);
+
 	SaveGEM();
 	AlignGEM();
-	if( passHyCalGEMPosMatch() ) {
+	if( passHyCalGEMPosMatch() )
+	{
 	    IncreasePeriod(1.0);
 	}
 	else {
 	    IncreasePeriod(0.);
 	}
     }
+#endif
 }
 
 void GEMEfficiency::InitTDCCutVar()
@@ -371,9 +390,9 @@ void GEMEfficiency::AlignGEM()
     gem_coord->GetClusterGEM(nth, gem2);
     total_event +=1.0;
     if( gem1.size() == 1 && gem2.size() == 1)
-        compton_event += 1.0;
+	compton_event += 1.0;
     else if( gem1.size() ==2 || gem2.size() == 2)
-        pair_event += 1.0;
+	pair_event += 1.0;
     gem1.clear();
     gem2.clear();
 #endif

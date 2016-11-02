@@ -48,10 +48,11 @@ static string trim(const string &str, const string &w = " \t\n\r")
 
 GEMAnalyzer::GEMAnalyzer()
 {
-    res_tree = new GEMTree();
-
     configure = new GEMConfigure();
     configure->LoadConfigure();
+
+    res_tree = new GEMTree();
+    res_tree->SetGEMConfigure(configure);
 
     parser = new GEMEvioParser();
     handler = new GEMDataHandler();

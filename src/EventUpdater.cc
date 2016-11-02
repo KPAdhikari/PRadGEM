@@ -14,7 +14,7 @@
 
 using namespace std;
 
-//#define EFFICIENCY_RUN
+#define EFFICIENCY_RUN
 
 EventUpdater::EventUpdater()
 {

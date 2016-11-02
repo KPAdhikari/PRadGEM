@@ -14,9 +14,11 @@
 #include "PRadEP.h"
 #include "TH1F.h"
 #include "MollerGEMSpatialRes.h"
+#include "GEMConfigure.h"
 
 using namespace std;
 
+// ------------------------------- common setting --------------------------------------
 GEMTree::GEMTree()
 {
     TH1::AddDirectory(kFALSE);
@@ -26,6 +28,21 @@ GEMTree::GEMTree()
     empty_ep_event = true;
     empty_epics_event = true;
     empty_gem_event = true;
+}
+
+void GEMTree::WriteToDisk()
+{
+    file->Write();
+    //file->Save();
+}
+
+GEMTree::~GEMTree()
+{
+}
+
+void GEMTree::SetGEMConfigure(GEMConfigure * c)
+{
+    configure = c;
 
     // init res tree
     this -> InitGEMTree(2); // 2 gem detectors
@@ -36,10 +53,8 @@ GEMTree::GEMTree()
     this -> InitOverlapTree();
 }
 
-GEMTree::~GEMTree()
-{
-}
 
+// ------------------------------- gem tree -------------------------------------
 void GEMTree::SetEventID(unsigned int &id)
 {
     event_id = (int) id;
@@ -50,9 +65,13 @@ void GEMTree::InitGEMTree(int ndet)
     gem_tree = new TTree("T", "res");
     gem_tree->SetDirectory(file);
 
-    assert( ndet < NDETECTOR);
-    nDet = ndet;
-    for(int i=0;i<2;i++)
+    assert( ndet <= NDETECTOR);
+
+    // event id
+    gem_tree->Branch("event_id", &evt_id, "event_id/I");
+
+    // gem information
+    for(int i=0;i<ndet;i++)
     {
 	gem_tree->Branch(Form("nhits%d",i),&nhits[i], Form("nhits%d/I",i));
 	gem_tree->Branch(Form("x%d",i), &x[i], Form("x%d[nhits%d]/F",i,i));
@@ -64,8 +83,143 @@ void GEMTree::InitGEMTree(int ndet)
 	gem_tree->Branch(Form("x%d_size",i), &x_size[i], Form("x%d_size[nhits%d]",i,i));
 	gem_tree->Branch(Form("y%d_size",i), &y_size[i], Form("y%d_size[nhits%d]",i,i));
     }
+
+    // tdc information
+    gem_tree->Branch("n_S2", &n_S2, "n_S2/I");
+    gem_tree->Branch("n_S1", &n_S1, "n_S1/I");
+    gem_tree->Branch("TDCS2", &TDCS2, "TDCS2[n_S2]/F");
+    gem_tree->Branch("TDCS1", &TDCS1, "TDCS1[n_S1]/F");
+    gem_tree->Branch("n_hycal", &n_hycal, "n_hycal/I");
+    gem_tree->Branch("TDCHyCal", &TDCHyCal, "TDCHyCal[n_hycal]/F");
+
+    // hycal information
+    gem_tree -> Branch("hycal_nhits", &hycal_nhits, "hycal_nhits/I");
+    gem_tree -> Branch("hycal_x", &hycal_x, "hycal_x[n_hycal]/F");
+    gem_tree -> Branch("hycal_y", &hycal_y, "hycal_y[n_hycal]/F");
+    gem_tree -> Branch("hycal_e", &hycal_e, "hycal_e[n_hycal]/F");
+
+    InitTDCGroup();
 }
 
+void GEMTree::InitTDCGroup()
+{
+    hycal_group_q = configure->TDC_Quan;
+
+    for(int i=0;i<hycal_group_q;i++)
+    {
+	hycal_group[i] = configure->TDC[i];
+    }
+
+    scin_group[0] = "S1";
+    scin_group[1] = "S2";
+}
+
+void GEMTree::PushCalibrationData(vector<GEMClusterStruct> &gem1,
+	vector<GEMClusterStruct> &gem2,
+	unordered_multimap<string, double> &tdc_map,
+	vector<HyCalHit> *hycalhit)
+{
+    PushDetector(0, gem1);
+    PushDetector(1, gem2);
+    PushTDCValue(tdc_map);
+    PushHyCalData(hycalhit);
+}
+
+
+void GEMTree::PushDetector(int nthDet, std::vector<GEMClusterStruct> Gem)
+{
+    int index = 0;
+    int n = nthDet;
+    int nh = Gem.size();
+    if(nh != 0)
+	empty_gem_event = false;
+
+    nhits[n] = nh;
+    for(auto &i: Gem)
+    {
+	x[n][index]=i.x;
+	y[n][index] = i.y;
+	x_charge[n][index] = i.x_charge;
+	y_charge[n][index] = i.y_charge;
+	energy[n][index] = i.energy;
+	z[n][index] = i.z;
+	x_size[n][index] = i.x_size;
+	y_size[n][index] = i.y_size;
+	index++;
+    }
+}
+
+void GEMTree::PushTDCValue(unordered_multimap<string, double> &tdc_map)
+{
+    vector<float> scin_val[2];
+
+    for(int i=0;i<2;i++)
+    {
+	auto range = tdc_map.equal_range( (string)scin_group[i] );
+	for(auto it=range.first;it!=range.second;++it)
+	    scin_val[i].push_back( (*it).second );
+    }
+
+    vector<float> hycal_val[4];
+
+    for(int i=0;i<hycal_group_q;i++)
+    {
+	auto range = tdc_map.equal_range( (string)hycal_group[i] );
+	for(auto it=range.first;it!=range.second;++it)
+	    hycal_val[i].push_back( (*it).second );
+    }
+
+    int index = 0;
+    // fill scintillator tdc
+    n_S1 = scin_val[0].size();
+    for(auto &ii: scin_val[0])
+    {
+	TDCS1[index] = ii;
+	index++;
+    }
+    index = 0;
+    n_S2 = scin_val[1].size();
+    for(auto &ii: scin_val[1])
+    {
+	TDCS2[index] = ii;
+	index++;
+    }
+    // fill hycal tdc
+    index = 0; n_hycal = 0;
+    for(int i=0;i<hycal_group_q;i++)
+    {
+	n_hycal += hycal_val[i].size();
+	for(auto &ii: hycal_val[i])
+	{
+	    TDCHyCal[index] = ii;
+	    index++;
+	}
+    }
+}
+
+void GEMTree::PushHyCalData(vector<HyCalHit> *hycal_hit)
+{
+    int index = 0;
+    hycal_nhits = hycal_hit->size();
+    for(auto &i: *hycal_hit)
+    {
+        hycal_x[index] = i.x;
+	hycal_y[index] = i.y;
+	hycal_e[index] = i.E;
+	index++;
+    }
+}
+
+void GEMTree::FillGEMTree()
+{
+    if( ! empty_gem_event){
+	gem_tree->Fill();
+    }
+    empty_gem_event = true;
+}
+
+
+// ------------------------------- physics tree -------------------------------------
 void GEMTree::InitPhysicsTree()
 {
     moller_tree = new TTree("moller_tree", "moller tree");
@@ -115,52 +269,6 @@ void GEMTree::InitPhysicsTree()
     ep_moller_tree -> Branch("scatt_y", scatt_y, "scatt_y[nCluster]/F");
 }
 
-void GEMTree::InitEpicsTree()
-{
-    //file = new TFile("root_file/epics_res.root", "recreate");
-    epics_tree = new TTree("epics_tree", "epics tree");
-    epics_tree -> SetDirectory(file);
-
-    string expression("");
-
-    expression+="MFC_Flow/D:Cell_Gas_T:Tank_P_P:Chamber_P:";
-    expression+="Cell_P:Cell_Body_T:hallb_ptrans_y2_encoder:";
-    expression+="hallb_ptrans_y1_encoder: hallb_ptrans_x_encoder:";
-    expression+="ptrans_y:ptrans_x:hallb_IPM2H01_CUR:";
-    expression+="hallb_IPM2H01_YPOS:hallb_IPM2H01_XPOS:";
-    expression+="hallb_IPM2C24A_CUR:hallb_IPM2C24A_XPOS:";
-    expression+="hallb_IPM2C21A_CUR:hallb_IPM2C21A_YPOS:";
-    expression+="hallb_IPM2C21A_XPOS:hallb_IPM2C24A_YPOS:";
-    expression+="scaler_calc1:VCG2H02A:VCG2H01A:VCG2H00A:";
-    expression+="VCG2C24A:VCG2C21A:VCG2C21:MBSY2C_energy";
-
-    epics_tree->Branch("epics", &_epics_tree, expression.c_str());
-    epics_tree->Branch("evtID", &event_id, "evtID/I");
-}
-
-void GEMTree::PushDetector(int nthDet, std::vector<GEMClusterStruct> Gem)
-{
-    int index = 0;
-    int n = nthDet;
-    int nh = Gem.size();
-    if(nh != 0)
-	empty_gem_event = false;
-
-    nhits[n] = nh;
-    for(auto &i: Gem)
-    {
-	x[n][index]=i.x;
-	y[n][index] = i.y;
-	x_charge[n][index] = i.x_charge;
-	y_charge[n][index] = i.y_charge;
-	energy[n][index] = i.energy;
-	z[n][index] = i.z;
-	x_size[n][index] = i.x_size;
-	y_size[n][index] = i.y_size;
-	index++;
-    }
-}
-
 void GEMTree::PushMoller(PRadMoller * moller)
 {
     vector<pair<double, double> > ea = moller->EnergyAngle();
@@ -172,7 +280,7 @@ void GEMTree::PushMoller(PRadMoller * moller)
     else {
 	return;
     }
-    
+
     // moller
     moller_data.event_id = moller->GetEvtID();
     moller_data.coplanarity = moller->Coplanarity();
@@ -203,7 +311,7 @@ void GEMTree::PushMoller(PRadMoller * moller)
     nCluster = 2;
     for(int i=0;i<nCluster;i++)
     {
-        detector_id[i] = pos[i].first;
+	detector_id[i] = pos[i].first;
 	scatt_x[i] = pos[i].second.first;
 	scatt_y[i] = pos[i].second.second;
 	scatt_energy[i] = ea[i].first;
@@ -262,18 +370,29 @@ void GEMTree::FillEPTree()
     empty_ep_event = true;
 }
 
-void GEMTree::FillGEMTree()
-{
-    if( ! empty_gem_event){
-	gem_tree->Fill();
-    }
-    empty_gem_event = true;
-}
 
-void GEMTree::WriteToDisk()
+// ------------------------------- epics tree -------------------------------------
+void GEMTree::InitEpicsTree()
 {
-    file->Write();
-    //file->Save();
+    //file = new TFile("root_file/epics_res.root", "recreate");
+    epics_tree = new TTree("epics_tree", "epics tree");
+    epics_tree -> SetDirectory(file);
+
+    string expression("");
+
+    expression+="MFC_Flow/D:Cell_Gas_T:Tank_P_P:Chamber_P:";
+    expression+="Cell_P:Cell_Body_T:hallb_ptrans_y2_encoder:";
+    expression+="hallb_ptrans_y1_encoder: hallb_ptrans_x_encoder:";
+    expression+="ptrans_y:ptrans_x:hallb_IPM2H01_CUR:";
+    expression+="hallb_IPM2H01_YPOS:hallb_IPM2H01_XPOS:";
+    expression+="hallb_IPM2C24A_CUR:hallb_IPM2C24A_XPOS:";
+    expression+="hallb_IPM2C21A_CUR:hallb_IPM2C21A_YPOS:";
+    expression+="hallb_IPM2C21A_XPOS:hallb_IPM2C24A_YPOS:";
+    expression+="scaler_calc1:VCG2H02A:VCG2H01A:VCG2H00A:";
+    expression+="VCG2C24A:VCG2C21A:VCG2C21:MBSY2C_energy";
+
+    epics_tree->Branch("epics", &_epics_tree, expression.c_str());
+    epics_tree->Branch("evtID", &event_id, "evtID/I");
 }
 
 void GEMTree::PushEpics(unordered_map<string, double> & epics_map)
@@ -349,6 +468,7 @@ void GEMTree::FillEpicsTree()
     epics_tree->Fill();
 }
 
+// ------------------------------- calibration offset tree -------------------------------------
 void GEMTree::InitCaliOffsetTree()
 {
     cali_offset_tree = new TTree("cali_offset_tree", "calibration offset tree");
@@ -368,6 +488,7 @@ void GEMTree::FillCaliOffsetTree()
     cali_offset_tree->Fill();
 }
 
+// ------------------------------- producton offset tree -------------------------------------
 // overlapping area method
 void GEMTree::InitProdOffsetTree()
 {
@@ -470,6 +591,8 @@ void GEMTree::FillProdOffsetTree()
     empty_prod_gem2 = true;
 }
 
+
+// ------------------------------- overlap area tree -------------------------------------
 void GEMTree::InitOverlapTree()
 {
     olp_empty_moller_event = true;

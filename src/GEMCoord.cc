@@ -49,8 +49,8 @@ void GEMCoord::GetClusterGEM( int &nth, vector<GEMClusterStruct> &gem)
     gem.clear();
     detector = mapping->GetDetectorFromID(nth);
     planeList = mapping->GetPlaneListFromDetector(detector);
-    list<GEMCluster*> clusterX = (*fListOfClustersCleanFromPlane)[planeList.front()]; 
-    list<GEMCluster*> clusterY = (*fListOfClustersCleanFromPlane)[planeList.back()]; 
+    list<GEMCluster*> clusterX = (*fListOfClustersCleanFromPlane)[planeList.front()];
+    list<GEMCluster*> clusterY = (*fListOfClustersCleanFromPlane)[planeList.back()];
     int sx = clusterX.size();
     int sy = clusterY.size();
     int N = (sx<sy)?sx:sy;
@@ -61,7 +61,7 @@ void GEMCoord::GetClusterGEM( int &nth, vector<GEMClusterStruct> &gem)
 	float c_x = (*itx)->GetClusterADCs();
 	float c_y = (*ity)->GetClusterADCs();
 	float x = (*itx)->GetClusterPosition();
-	float y = (*ity)->GetClusterPosition(); 
+	float y = (*ity)->GetClusterPosition();
 	GEMClusterStruct cluster(x, y, c_x, c_y);
 	cluster.x_size = (*itx)->GetNbOfHits();
 	cluster.y_size = (*ity)->GetNbOfHits();
@@ -72,9 +72,43 @@ void GEMCoord::GetClusterGEM( int &nth, vector<GEMClusterStruct> &gem)
     }
 }
 
+void GEMCoord::GetClusterGEMPlusMode( int nth, vector<GEMClusterStruct> &gem)
+{
+    // get charactoristics for nth gem detector
+    //planeList.clear();
+    fListOfClustersCleanFromPlane = hit_decoder->GetListOfClustersCleanFromPlane();
+    if(fListOfClustersCleanFromPlane -> size() == 0)
+        return;
+    gem.clear();
+    detector = mapping->GetDetectorFromID(nth);
+    planeList = mapping->GetPlaneListFromDetector(detector);
+
+    list<GEMCluster*> clusterX = (*fListOfClustersCleanFromPlane)[planeList.front()];
+    list<GEMCluster*> clusterY = (*fListOfClustersCleanFromPlane)[planeList.back()];
+
+    list<GEMCluster*>::iterator itx = clusterX.begin();
+    list<GEMCluster*>::iterator ity = clusterY.begin();
+
+    for(;itx!=clusterX.end();++itx)
+    {
+	for(;ity!=clusterY.end();++ity)
+	{
+	    float c_x = (*itx)->GetClusterADCs();
+	    float c_y = (*ity)->GetClusterADCs();
+	    float x = (*itx)->GetClusterPosition();
+	    float y = (*ity)->GetClusterPosition();
+	    GEMClusterStruct cluster(x, y, c_x, c_y);
+	    cluster.x_size = (*itx)->GetNbOfHits();
+	    cluster.y_size = (*ity)->GetNbOfHits();
+	    cluster.chamber_id = nth;
+	    gem.push_back(cluster);
+	}
+    }
+}
+
 void GEMCoord::InitPRadGeometry()
 {
-    //--------------------------------------------    
+    //--------------------------------------------
     // Convert coordinate
     // -------------------------------------------
     //    Move GEM coordinate to GEM Hole center
@@ -94,7 +128,7 @@ void GEMCoord::InitPRadGeometry()
     //    chamber thickness + screw thickness = 20mm
     //    5304 and 5264 do not include this 20mm
     //---------------------------------------------
-    
+
     origin_transfer = 253.2;
     overlap_length = 44.;
     z_gem[0] = 5304.;
@@ -112,7 +146,7 @@ void GEMCoord::SetGEMOffsetX(double v)
 {
     // gem_offset_x will be used in 
     // gem local frame
-    
+
     // make sure the offset provided
     // is in gem1 local frame.
 
@@ -123,7 +157,7 @@ void GEMCoord::SetGEMOffsetY(double v)
 {
     // gem_offset_y will be used in 
     // gem local frame
-    
+
     // make sure the offset provided
     // is in gem1 local frame.
 
@@ -167,7 +201,7 @@ pair<double, double> GEMCoord::TransformGEMCoord(int n, pair<double, double> && 
     //      step 1), align gem1 to gem2
     //      step 2), align gem plane to beam
     //----------------------------------------
-    
+
     pair<double, double> res;
 
     //----------------------------------------
@@ -183,16 +217,16 @@ pair<double, double> GEMCoord::TransformGEMCoord(int n, pair<double, double> && 
     //----------------------------------------
     if(n==0)
     {
-        res.first = (c.first - origin_transfer) + gem_offset_x - gem_hycal_offset_x - gem_beam_offset_x;
+	res.first = (c.first - origin_transfer) + gem_offset_x - gem_hycal_offset_x - gem_beam_offset_x;
 	res.second = -c.second + gem_offset_y - gem_hycal_offset_y - gem_beam_offset_y;
     }
     else if(n == 1)
     {
-        res.first = (origin_transfer - c.first) - gem_hycal_offset_x - gem_beam_offset_x;
+	res.first = (origin_transfer - c.first) - gem_hycal_offset_x - gem_beam_offset_x;
 	res.second = c.second - gem_hycal_offset_y - gem_beam_offset_y;
     }
     else
-        cout<<"Transform GEM Coord Error..."
+	cout<<"Transform GEM Coord Error..."
 	    <<endl;
     return res;
 }
@@ -240,7 +274,7 @@ void GEMCoord::GetPlaneClusterPlusMode(vector<GEMClusterStruct> &gem1,
     list<GEMCluster*> cluster_y1 = (*fListOfClustersCleanFromPlane)["pRadGEM1Y"];
     list<GEMCluster*> cluster_x2 = (*fListOfClustersCleanFromPlane)["pRadGEM2X"];
     list<GEMCluster*> cluster_y2 = (*fListOfClustersCleanFromPlane)["pRadGEM2Y"];
-    
+
     XYClusterMatchPlusMode(0, gem1, cluster_x1, cluster_y1);
     XYClusterMatchPlusMode(1, gem2, cluster_x2, cluster_y2);
 }
