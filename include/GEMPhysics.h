@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <fstream>
 #include "datastruct.h"
 #include "GEMDataStruct.h"
 #include "PRadEventStruct.h"
@@ -35,6 +36,9 @@ public:
     void SetEvtID(unsigned int);
     unsigned int GetEvtID();
     bool IsHyCalGEMMatchSucess(std::vector<GEMClusterStruct> &);
+    // production efficiency
+    void InitProductionEfficiency();
+    void UpdateProductionEfficiency(std::vector<GEMClusterStruct> &);
 
 private:
     unsigned int evt_id;
@@ -56,6 +60,14 @@ private:
     PRadDataHandler *pHandler;
     PRadReconstructor * reconstruct;
     std::vector<HyCalHit> hycal_hit;
+
+    // production efficiency
+    std::fstream eff_log;
+    float x_hycal_ep_quantity[21];
+    float x_gem_ep_quantity[21];
+    float y_hycal_ep_quantity[21];
+    float y_gem_ep_quantity[21];
+    float gem_ep_quantity, hycal_ep_quantity;
 };
 
 #endif

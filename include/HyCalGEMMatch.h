@@ -77,6 +77,9 @@ private:
     double z_gem2;
     double z_hycal;
     double delta;
+
+    // show match
+    int n_match;
 };
 
 #endif

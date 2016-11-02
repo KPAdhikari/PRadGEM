@@ -268,6 +268,10 @@ void HyCalGEMMatch::ShowMatch()
     if(hycal_hit->size() == 0)
 	return;
 
+    // see moller
+    if(hycal_hit->size() != 2)
+        return;
+
     int ng1 = gem[0].size();
     int ng2 = gem[1].size();
     int nh = hycal_hit->size();
@@ -288,11 +292,14 @@ void HyCalGEMMatch::ShowMatch()
     }
     index = 0;
     for(auto &i: *hycal_hit){
-	xh[index] = i.x;
-	xh[index++] = i.y;
+	xh[index] = i.x *5260/5800;
+	xh[index++] = i.y *5260/5800;
     }
 
-    TFile *f = new TFile("temp.root", "recreate");
+    int file_id = n_match++;
+    cout<<"file name: "<<file_id<<endl;
+
+    TFile *f = new TFile(Form("temp_%d.root", file_id), "recreate");
     TCanvas *c = new TCanvas("c", "c", 800,800);
     TGraph *g1 = new TGraph(ng1, xg1, yg1);
     TGraph *g2 = new TGraph(ng2, xg2, yg2);
@@ -327,10 +334,10 @@ void HyCalGEMMatch::ShowMatch()
     g1->Draw("P");
     g2->Draw("P");
     gh->Draw("P");
-    c->Update();
+    //c->Update();
     cout<<"press enter to continue..."<<endl;
     c->Write();
     f->Write();
     f->Close();
-    getchar();
+    //getchar();
 }

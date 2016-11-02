@@ -42,6 +42,8 @@ GEMPhysics::GEMPhysics()
     gem2_ep_analyzer->SetBeamEnergy(2147);
 
     match_analyzer = new HyCalGEMMatch();
+
+    InitProductionEfficiency();
 }
 
 GEMPhysics::~GEMPhysics()
@@ -115,6 +117,9 @@ void GEMPhysics::CharactorizePlanePhysics()
     match_analyzer -> Match();
     vector<GEMClusterStruct> gem;
     gem = match_analyzer->GetMatchGEM();
+
+    UpdateProductionEfficiency(gem);
+
     if(gem.size() == 2){
 	if(IsHyCalGEMMatchSucess(gem)){
 	    moller_analyzer -> SetEvtID( evt_id);
@@ -233,4 +238,122 @@ bool GEMPhysics::IsHyCalGEMMatchSucess(vector<GEMClusterStruct> &gem)
 	return false;
     else 
 	return true;
+}
+
+void GEMPhysics::InitProductionEfficiency()
+{
+    eff_log.open("production_efficiency.log",iostream::out);
+    if(!eff_log.is_open()){
+        cout<<"cannot open eff log file."<<endl;
+	exit(-1);
+    }
+
+    for(int i=0;i<21;i++){
+	x_hycal_ep_quantity[i]=0.;
+	x_gem_ep_quantity[i]=0.;
+	y_hycal_ep_quantity[i]=0.;
+	y_gem_ep_quantity[i]=0.;
+    }
+
+    gem_ep_quantity = 0.;
+    hycal_ep_quantity = 0.;
+}
+
+static int get_sector_index(float val)
+{
+    int index = -1;
+
+    if(val>=-600. && val<-552.86)
+	index = 0;
+    else if(val>=-532.86 && val <-495.72)
+	index = 1;
+    else if(val>=-475.72 && val <-438.58)
+	index = 2;
+    else if(val>=-418.58 && val <-381.44)
+	index = 3;
+    else if(val>=-361.44 && val <-324.30)
+	index = 4;
+    else if(val>=-304.30 && val <-267.16)
+	index = 5;
+    else if(val>=-247.16 && val <-210.02)
+	index = 6;
+    else if(val>=-190.02 && val <-152.88)
+	index = 7;
+    else if(val>=-132.88 && val <-95.74)
+	index = 8;
+    else if(val>=-75.74 && val <-38.60)
+	index = 9;
+    else if(val>=-18.6 && val <18.6)
+	index = 10;
+    else if(val>=38.6 && val <75.74)
+	index = 11;
+    else if(val>=95.74 && val <132.88)
+	index = 12;
+    else if(val>=152.88 && val <190.02)
+	index = 13;
+     else if(val>=210.02 && val <247.16)
+	index = 14;
+    else if(val>=267.16 && val <304.30)
+	index = 15;
+     else if(val>=324.30 && val <361.44)
+	index = 16;
+    else if(val>=381.44 && val <418.58)
+	index = 17;
+    else if(val>=438.58 && val <475.72)
+	index = 18;
+     else if(val>=495.72 && val <532.86)
+	index = 19;
+    else if(val>=552.86 && val <600)
+	index = 20;
+
+    return index;
+}
+
+void GEMPhysics::UpdateProductionEfficiency(vector<GEMClusterStruct> &gem)
+{
+    int n_hycal = hycal_hit.size();
+    float tot_e = 0.;
+    int x_index = -1;
+    int y_index = -1;
+
+    if(n_hycal!=1)
+	return;
+
+    tot_e += hycal_hit[0].E;
+    if(tot_e>2500. || tot_e<1900.)
+	return;
+
+    int n_gem = gem.size();
+    if(n_gem > 1){
+	cout<<"something very wrong happened..."<<endl;
+    }
+
+    x_index = get_sector_index(hycal_hit[0].x *5260./5800.);
+    y_index = get_sector_index(hycal_hit[0].y *5260./5800.);
+
+    hycal_ep_quantity+=1.0;
+    gem_ep_quantity += n_gem;
+    if(x_index != -1){
+	x_hycal_ep_quantity[ x_index ]+=1.0;
+	x_gem_ep_quantity[ x_index ]+=n_gem;
+    }
+    if(y_index!=-1){
+	y_hycal_ep_quantity[ y_index ]+=1.0;
+	y_gem_ep_quantity[ y_index ]+=n_gem;
+    }
+
+    if((int)hycal_ep_quantity%1000 == 0 && hycal_ep_quantity>100)
+    {
+	eff_log<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<endl;
+	eff_log<<"overall efficiency: "<<gem_ep_quantity<<"/"<<hycal_ep_quantity<<"="
+	    <<gem_ep_quantity/hycal_ep_quantity<<endl;
+	for(int i=0;i<21;i++){
+	    eff_log<<"x efficiency: "<<x_gem_ep_quantity[i]<<"/"<<x_hycal_ep_quantity[i]<<"="
+		<<x_gem_ep_quantity[i]/x_hycal_ep_quantity[i]<<endl;
+	}
+	for(int i=0;i<21;i++){
+	    eff_log<<"y efficiency "<<y_gem_ep_quantity[i]<<"/"<<y_hycal_ep_quantity[i]<<"="
+		<<y_gem_ep_quantity[i]/y_hycal_ep_quantity[i]<<endl;
+	}
+    }
 }
