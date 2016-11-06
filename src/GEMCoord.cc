@@ -39,7 +39,7 @@ void GEMCoord::SetHitDecoder(GEMOnlineHitDecoder * p)
     hit_decoder = p;
 }
 
-void GEMCoord::GetClusterGEM( int &nth, vector<GEMClusterStruct> &gem)
+void GEMCoord::GetClusterGEM( int nth, vector<GEMClusterStruct> &gem)
 {
     // get charactoristics for nth gem detector
     //planeList.clear();

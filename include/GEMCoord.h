@@ -19,7 +19,7 @@ public:
     void SetHitDecoder(GEMOnlineHitDecoder *);
 
     //get charactoristics for nth gem detector
-    void GetClusterGEM(int & nth, std::vector<GEMClusterStruct> &gem);
+    void GetClusterGEM(int nth, std::vector<GEMClusterStruct> &gem);
     void GetClusterGEMPlusMode(int nth, std::vector<GEMClusterStruct> &gem);
 
 private:

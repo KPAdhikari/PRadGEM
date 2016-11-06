@@ -87,8 +87,11 @@ void GEMEfficiency::AccumulateEvent(unsigned int evtID, unordered_map<int, vecto
     hit_decoder->ProcessEvent(event);
 
     vector<GEMClusterStruct> gem1, gem2;
-    gem_coord -> GetClusterGEMPlusMode(0, gem1);
-    gem_coord -> GetClusterGEMPlusMode(1, gem2);
+    //gem_coord -> GetClusterGEMPlusMode(0, gem1);
+    //gem_coord -> GetClusterGEMPlusMode(1, gem2);
+    gem_coord -> GetClusterGEM(0, gem1);
+    gem_coord -> GetClusterGEM(1, gem2);
+
 
     hycal_hit = reconstructor -> CoarseHyCalReconstruct(pHandler->GetEventCount()-1);
     gem_tree->PushCalibrationData(gem1, gem2, tdc_channel_value, &hycal_hit);
