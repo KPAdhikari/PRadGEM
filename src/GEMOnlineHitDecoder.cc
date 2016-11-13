@@ -499,7 +499,7 @@ static Bool_t CompareClusterADCs( TObject *obj1, TObject *obj2) {
     return compare ;
 }
 
-#define NOISE_SIGMA 14
+#define NOISE_SIGMA 1
 void GEMOnlineHitDecoder::ComputeClusters()
 {
     map< TString, list<GEMHit*> >::iterator plane_hits_it;

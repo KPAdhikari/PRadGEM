@@ -47,15 +47,20 @@ void GEMCoord::GetClusterGEM( int nth, vector<GEMClusterStruct> &gem)
     if(fListOfClustersCleanFromPlane -> size() == 0)
         return;
     gem.clear();
+
     detector = mapping->GetDetectorFromID(nth);
     planeList = mapping->GetPlaneListFromDetector(detector);
+
     list<GEMCluster*> clusterX = (*fListOfClustersCleanFromPlane)[planeList.front()];
     list<GEMCluster*> clusterY = (*fListOfClustersCleanFromPlane)[planeList.back()];
+
     int sx = clusterX.size();
     int sy = clusterY.size();
     int N = (sx<sy)?sx:sy;
+
     list<GEMCluster*>::iterator itx = clusterX.begin();
     list<GEMCluster*>::iterator ity = clusterY.begin();
+
     for(int i=0;i<N;i++)
     {
 	float c_x = (*itx)->GetClusterADCs();
@@ -80,6 +85,7 @@ void GEMCoord::GetClusterGEMPlusMode( int nth, vector<GEMClusterStruct> &gem)
     if(fListOfClustersCleanFromPlane -> size() == 0)
         return;
     gem.clear();
+
     detector = mapping->GetDetectorFromID(nth);
     planeList = mapping->GetPlaneListFromDetector(detector);
 
@@ -89,9 +95,9 @@ void GEMCoord::GetClusterGEMPlusMode( int nth, vector<GEMClusterStruct> &gem)
     list<GEMCluster*>::iterator itx = clusterX.begin();
     list<GEMCluster*>::iterator ity = clusterY.begin();
 
-    for(;itx!=clusterX.end();++itx)
+    for(itx=clusterX.begin();itx!=clusterX.end();++itx)
     {
-	for(;ity!=clusterY.end();++ity)
+	for(ity=clusterY.begin();ity!=clusterY.end();++ity)
 	{
 	    float c_x = (*itx)->GetClusterADCs();
 	    float c_y = (*ity)->GetClusterADCs();
