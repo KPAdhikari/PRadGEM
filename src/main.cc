@@ -19,7 +19,11 @@ int main(int argc, char* argv[])
   //Analysis Configure
   GEMConfigure configure;
   configure.LoadConfigure();
-  string mapping_file(configure.GetMapping());
+  
+  //kp: 12/6/16: http://www.cplusplus.com/reference/string/string/string/
+  //     copy constructor -> string(const string& str);
+  string mapping_file(configure.GetMapping()); 
+  
   cout<<"Loading Mapping File from:  "<<mapping_file.c_str()<<endl;
   GEMMapping* mapping = GEMMapping::GetInstance();
   mapping->LoadMapping(mapping_file.c_str());
