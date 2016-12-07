@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
   
   //kp: 12/6/16: http://www.cplusplus.com/reference/string/string/string/
   //     copy constructor -> string(const string& str);
+  //   see an example below at the same webpage.
   string mapping_file(configure.GetMapping()); 
   
   cout<<"Loading Mapping File from:  "<<mapping_file.c_str()<<endl;
