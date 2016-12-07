@@ -357,6 +357,9 @@ float GEMRawPedestal::GetStripOffset(int apvindex, int channelID)
 //debug member function
 void GEMRawPedestal::PrintEventPedestal()
 {
+    //kp: 12/7/16: http://www.cplusplus.com/doc/tutorial/variables/
+    //            Type deduction: auto and decltype
+    //            http://www.cplusplus.com/forum/general/103388/ (see comment by Peter87 (7908))
     for(auto &i: mSrsSingleEvent)
     {
         int apvid = i.first;
